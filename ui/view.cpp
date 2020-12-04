@@ -5,8 +5,13 @@
 #include <QKeyEvent>
 #include <iostream>
 
+#include "lib/ResourceLoader.h"
+
+using namespace CS123;
+using namespace GL;
+
 View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
-    m_time(), m_timer(), m_captureMouse(false)
+    m_time(), m_timer(), m_captureMouse(false), m_height(height()), m_width(width())
 {
     // View needs all mouse move events, not just mouse drag events
     setMouseTracking(true);
@@ -50,12 +55,39 @@ void View::initializeGL() {
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
+
+    std::string vertexSource = ResourceLoader::loadResourceFileToString(":/shaders/quad.vert");
+    std::string fragmentSource = ResourceLoader::loadResourceFileToString(":/shaders/quad.frag");
+    m_program = std::make_unique<Shader>(vertexSource, fragmentSource);
+
+    std::vector<GLfloat> quadData{
+        -1.f, 1.f, 0.0,
+         0.f, 0.f,
+        -1.f, -1.f, 0.0,
+         0.f, 1.f,
+         1.f, 1.f, 0.0,
+         1.f, 0.f,
+         1.f, -1.f, 0.0,
+         1.f, 1.f
+    };
+
+    m_quad = std::make_unique<OpenGLShape>();
+    m_quad->setVertexData(&quadData[0], quadData.size(), VBO::GEOMETRY_LAYOUT::LAYOUT_TRIANGLE_STRIP, 4);
+    m_quad->setAttribute(ShaderAttrib::POSITION, 3, 0, VBOAttribMarker::DATA_TYPE::FLOAT, false);
+    m_quad->setAttribute(ShaderAttrib::TEXCOORD0, 2, 3*sizeof(GLfloat), VBOAttribMarker::DATA_TYPE::FLOAT, false);
+    m_quad->buildVAO();
 }
 
 void View::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // TODO: Implement the demo rendering here
+    m_program->bind();
+
+    m_quad->draw();
+
+    m_program->unbind();
+
 }
 
 void View::resizeGL(int w, int h) {

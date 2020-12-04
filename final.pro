@@ -22,12 +22,42 @@ win32 {
 }
 
 SOURCES += ui/mainwindow.cpp \
+    gl/GLDebug.cpp \
+    gl/datatype/VAO.cpp \
+    gl/datatype/VBO.cpp \
+    gl/datatype/VBOAttribMarker.cpp \
+    gl/shaders/Shader.cpp \
+    gl/textures/DepthBuffer.cpp \
+    gl/textures/RenderBuffer.cpp \
+    gl/textures/Texture.cpp \
+    gl/textures/Texture2D.cpp \
+    gl/textures/TextureParameters.cpp \
+    gl/textures/TextureParametersBuilder.cpp \
+    gl/utils/FullScreenQuad.cpp \
+    lib/OpenGLShape.cpp \
+    lib/ResourceLoader.cpp \
     main.cpp \
     glew-1.10.0/src/glew.c \
+    ui/Databinding.cpp \
     ui/view.cpp \
     ui/viewformat.cpp
 
 HEADERS += ui/mainwindow.h \
+    gl/GLDebug.h \
+    gl/datatype/VAO.h \
+    gl/datatype/VBO.h \
+    gl/datatype/VBOAttribMarker.h \
+    gl/shaders/Shader.h \
+    gl/shaders/ShaderAttribLocations.h \
+    gl/textures/DepthBuffer.h \
+    gl/textures/RenderBuffer.h \
+    gl/textures/Texture.h \
+    gl/textures/Texture2D.h \
+    gl/textures/TextureParameters.h \
+    gl/textures/TextureParametersBuilder.h \
+    lib/OpenGLShape.h \
+    lib/ResourceLoader.h \
+    ui/Databinding.h \
     ui_mainwindow.h \
     glew-1.10.0/include/GL/glew.h \
     ui/view.h \
@@ -70,4 +100,6 @@ DISTFILES += \
     shaders/normals/normals.gsh \
     shaders/normals/normalsArrow.gsh \
     shaders/normals/normalsArrow.frag \
-    shaders/normals/normalsArrow.vert
+    shaders/normals/normalsArrow.vert \
+    shaders/quad.frag \
+    shaders/quad.vert
