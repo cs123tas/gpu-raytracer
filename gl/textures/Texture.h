@@ -24,3 +24,4 @@ protected:
 }}
 
 #endif // TEXTURE_H
+

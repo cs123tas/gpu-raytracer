@@ -11,6 +11,16 @@
 
 namespace CS123 { namespace GL {
 
+Shader::Shader(const std::string& computeSource)
+{
+    createProgramID();
+    std::vector<GLuint> shaders;
+    shaders.push_back(createComputeShaderFromSource(computeSource));
+    buildShaderProgramFromShaders(shaders);
+    discoverShaderData();
+}
+
+
 Shader::Shader(const std::string &vertexSource, const std::string &fragmentSource)
 {
     createProgramID();
@@ -194,6 +204,8 @@ void Shader::setTexture(const std::string &name, const Texture2D &t) {
     t.bind();
 }
 
+
+// TODO: These are left blank from the stencil, not sure what to do with this
 void Shader::setTexture(const std::string &name, const Texture3D &t) {}
 
 void Shader::setTexture(const std::string &name, const TextureCube &t) {}
@@ -208,6 +220,11 @@ void Shader::buildShaderProgramFromShaders(const std::vector<GLuint> &shaders) {
     detachShaders(shaders);
     deleteShaders(shaders);
 }
+
+GLuint Shader::createComputeShaderFromSource(const std::string &source) {
+    return createShaderFromSource(source, GL_COMPUTE_SHADER);
+}
+
 
 GLuint Shader::createFragmentShaderFromSource(const std::string &source) {
    return createShaderFromSource(source, GL_FRAGMENT_SHADER);

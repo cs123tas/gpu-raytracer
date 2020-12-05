@@ -14,6 +14,7 @@
 
 #include "../gl/shaders/Shader.h"
 #include "../lib/OpenGLShape.h"
+#include "../gl/datatype/FBO.h"
 
 using namespace CS123;
 using namespace GL;
@@ -33,9 +34,19 @@ private:
     int m_height;
     int m_width;
 
-    std::unique_ptr<Shader> m_program;
-    std::unique_ptr<OpenGLShape> m_quad;
+    std::unique_ptr<Shader> m_rayTracerProgram;
 
+    std::unique_ptr<Shader> m_phongProgram;
+    std::unique_ptr<OpenGLShape> m_sphere;
+
+    std::unique_ptr<Shader> m_textureProgram;
+    std::unique_ptr<OpenGLShape> m_quad;
+    std::unique_ptr<FBO> m_fbo; // TODO: I don't know if we need it, my intuition says so
+
+    glm::mat4 m_view, m_projection;
+    float m_angleX, m_angleY, m_zoom;
+
+    void rebuildMatrices();
 
     void initializeGL();
     void paintGL();

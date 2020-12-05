@@ -29,6 +29,7 @@ Texture& Texture::operator=(Texture &&that) {
 
 Texture::~Texture()
 {
+    // TODO Don't forget to delete!
     glDeleteTextures(1, &m_handle);
 }
 

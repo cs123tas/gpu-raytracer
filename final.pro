@@ -58,6 +58,7 @@ HEADERS += ui/mainwindow.h \
     gl/textures/TextureParametersBuilder.h \
     lib/OpenGLShape.h \
     lib/ResourceLoader.h \
+    lib/Sphere.h \
     ui/Databinding.h \
     ui_mainwindow.h \
     glew-1.10.0/include/GL/glew.h \
@@ -104,4 +105,4 @@ DISTFILES += \
     shaders/normals/normalsArrow.vert \
     shaders/quad.frag \
     shaders/quad.vert \
-    shaders/traceRay.comp
+    shaders/rayTracer.comp

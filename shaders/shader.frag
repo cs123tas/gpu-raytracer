@@ -1,14 +1,11 @@
-#version 400 core
+#version 330 core
 
-in vec3 color;
-in vec2 texc;
-out vec4 fragColor;
+in vec3 WorldSpace_position; // world-space position
+in vec3 WorldSpace_normal;   // world-space normal
 
-uniform sampler2D tex;
-uniform int useTexture = 0;
+out vec3 fragColor;
 
 void main(){
-    vec3 texColor = texture(tex, texc).rgb;
-    texColor = clamp(texColor + vec3(1-useTexture), vec3(0), vec3(1));
-    fragColor = vec4(color * texColor, 1);
+    vec3 WorldSpace_toLight = normalize(vec3(10.0) - WorldSpace_position);
+    fragColor = vec3(0.3 + 0.7 * max(0.0, dot(normalize(WorldSpace_normal), WorldSpace_toLight)));
 }

@@ -20,6 +20,7 @@ class TextureCube;
 
 class Shader {
 public:
+    Shader(const std::string &computeSource);
     Shader(const std::string &vertexSource, const std::string &fragmentSource);
     Shader(const std::string &vertexSource, const std::string &geometrySource, const std::string &fragmentSource);
 
@@ -73,11 +74,14 @@ public:
 
 private:
 
+    GLuint createComputeShaderFromSource(const std::string &source);
+
     GLuint createFragmentShaderFromSource(const std::string &source);
     GLuint createGeometryShaderFromSource(const std::string &source);
     void compileShader(GLuint handle, const std::string &source);
     GLuint createVertexShaderFromSource(const std::string &source);
     GLuint createShaderFromSource(const std::string &source, GLenum shaderType);
+
 
     void createProgramID();
     void attachShaders(const std::vector<GLuint> &shaders);

@@ -54,6 +54,7 @@ OBJECTS_DIR   = ./
 
 SOURCES       = ui/mainwindow.cpp \
 		gl/GLDebug.cpp \
+		gl/datatype/FBO.cpp \
 		gl/datatype/VAO.cpp \
 		gl/datatype/VBO.cpp \
 		gl/datatype/VBOAttribMarker.cpp \
@@ -64,7 +65,6 @@ SOURCES       = ui/mainwindow.cpp \
 		gl/textures/Texture2D.cpp \
 		gl/textures/TextureParameters.cpp \
 		gl/textures/TextureParametersBuilder.cpp \
-		gl/utils/FullScreenQuad.cpp \
 		lib/OpenGLShape.cpp \
 		lib/ResourceLoader.cpp \
 		main.cpp \
@@ -77,6 +77,7 @@ SOURCES       = ui/mainwindow.cpp \
 		moc_view.cpp
 OBJECTS       = mainwindow.o \
 		GLDebug.o \
+		FBO.o \
 		VAO.o \
 		VBO.o \
 		VBOAttribMarker.o \
@@ -87,7 +88,6 @@ OBJECTS       = mainwindow.o \
 		Texture2D.o \
 		TextureParameters.o \
 		TextureParametersBuilder.o \
-		FullScreenQuad.o \
 		OpenGLShape.o \
 		ResourceLoader.o \
 		main.o \
@@ -107,6 +107,7 @@ DIST          = shaders/normals/normals.vert \
 		shaders/normals/normalsArrow.vert \
 		shaders/quad.frag \
 		shaders/quad.vert \
+		shaders/rayTracer.comp \
 		../../../../Qt5.14.2/5.14.2/clang_64/mkspecs/features/spec_pre.prf \
 		../../../../Qt5.14.2/5.14.2/clang_64/mkspecs/qdevice.pri \
 		../../../../Qt5.14.2/5.14.2/clang_64/mkspecs/features/device_config.prf \
@@ -286,6 +287,7 @@ DIST          = shaders/normals/normals.vert \
 		../../../../Qt5.14.2/5.14.2/clang_64/mkspecs/features/lex.prf \
 		final.pro ui/mainwindow.h \
 		gl/GLDebug.h \
+		gl/datatype/FBO.h \
 		gl/datatype/VAO.h \
 		gl/datatype/VBO.h \
 		gl/datatype/VBOAttribMarker.h \
@@ -299,12 +301,14 @@ DIST          = shaders/normals/normals.vert \
 		gl/textures/TextureParametersBuilder.h \
 		lib/OpenGLShape.h \
 		lib/ResourceLoader.h \
+		lib/Sphere.h \
 		ui/Databinding.h \
 		ui_mainwindow.h \
 		glew-1.10.0/include/GL/glew.h \
 		ui/view.h \
 		ui/viewformat.h ui/mainwindow.cpp \
 		gl/GLDebug.cpp \
+		gl/datatype/FBO.cpp \
 		gl/datatype/VAO.cpp \
 		gl/datatype/VBO.cpp \
 		gl/datatype/VBOAttribMarker.cpp \
@@ -315,7 +319,6 @@ DIST          = shaders/normals/normals.vert \
 		gl/textures/Texture2D.cpp \
 		gl/textures/TextureParameters.cpp \
 		gl/textures/TextureParametersBuilder.cpp \
-		gl/utils/FullScreenQuad.cpp \
 		lib/OpenGLShape.cpp \
 		lib/ResourceLoader.cpp \
 		main.cpp \
@@ -745,8 +748,8 @@ distdir: FORCE
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents ../../../../Qt5.14.2/5.14.2/clang_64/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents ui/mainwindow.h gl/GLDebug.h gl/datatype/VAO.h gl/datatype/VBO.h gl/datatype/VBOAttribMarker.h gl/shaders/Shader.h gl/shaders/ShaderAttribLocations.h gl/textures/DepthBuffer.h gl/textures/RenderBuffer.h gl/textures/Texture.h gl/textures/Texture2D.h gl/textures/TextureParameters.h gl/textures/TextureParametersBuilder.h lib/OpenGLShape.h lib/ResourceLoader.h ui/Databinding.h ui_mainwindow.h glew-1.10.0/include/GL/glew.h ui/view.h ui/viewformat.h $(DISTDIR)/
-	$(COPY_FILE) --parents ui/mainwindow.cpp gl/GLDebug.cpp gl/datatype/VAO.cpp gl/datatype/VBO.cpp gl/datatype/VBOAttribMarker.cpp gl/shaders/Shader.cpp gl/textures/DepthBuffer.cpp gl/textures/RenderBuffer.cpp gl/textures/Texture.cpp gl/textures/Texture2D.cpp gl/textures/TextureParameters.cpp gl/textures/TextureParametersBuilder.cpp gl/utils/FullScreenQuad.cpp lib/OpenGLShape.cpp lib/ResourceLoader.cpp main.cpp glew-1.10.0/src/glew.c ui/Databinding.cpp ui/view.cpp ui/viewformat.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents ui/mainwindow.h gl/GLDebug.h gl/datatype/FBO.h gl/datatype/VAO.h gl/datatype/VBO.h gl/datatype/VBOAttribMarker.h gl/shaders/Shader.h gl/shaders/ShaderAttribLocations.h gl/textures/DepthBuffer.h gl/textures/RenderBuffer.h gl/textures/Texture.h gl/textures/Texture2D.h gl/textures/TextureParameters.h gl/textures/TextureParametersBuilder.h lib/OpenGLShape.h lib/ResourceLoader.h lib/Sphere.h ui/Databinding.h ui_mainwindow.h glew-1.10.0/include/GL/glew.h ui/view.h ui/viewformat.h $(DISTDIR)/
+	$(COPY_FILE) --parents ui/mainwindow.cpp gl/GLDebug.cpp gl/datatype/FBO.cpp gl/datatype/VAO.cpp gl/datatype/VBO.cpp gl/datatype/VBOAttribMarker.cpp gl/shaders/Shader.cpp gl/textures/DepthBuffer.cpp gl/textures/RenderBuffer.cpp gl/textures/Texture.cpp gl/textures/Texture2D.cpp gl/textures/TextureParameters.cpp gl/textures/TextureParametersBuilder.cpp lib/OpenGLShape.cpp lib/ResourceLoader.cpp main.cpp glew-1.10.0/src/glew.c ui/Databinding.cpp ui/view.cpp ui/viewformat.cpp $(DISTDIR)/
 	$(COPY_FILE) --parents ui/mainwindow.ui $(DISTDIR)/
 
 
@@ -782,7 +785,8 @@ qrc_resources.cpp: resources.qrc \
 		shaders/quad.frag \
 		shaders/shader.frag \
 		shaders/quad.vert \
-		shaders/shader.vert
+		shaders/shader.vert \
+		shaders/rayTracer.comp
 	/Users/d_avedis/Qt5.14.2/5.14.2/clang_64/bin/rcc -name resources resources.qrc -o qrc_resources.cpp
 
 compiler_moc_predefs_make_all: moc_predefs.h
@@ -924,6 +928,8 @@ moc_view.cpp: ui/view.h \
 		lib/OpenGLShape.h \
 		gl/datatype/VBO.h \
 		gl/datatype/VBOAttribMarker.h \
+		gl/datatype/FBO.h \
+		gl/textures/TextureParameters.h \
 		moc_predefs.h \
 		../../../../Qt5.14.2/5.14.2/clang_64/bin/moc
 	/Users/d_avedis/Qt5.14.2/5.14.2/clang_64/bin/moc $(DEFINES) --include /Users/d_avedis/Documents/GitHub/cs1230/gpu-raytracer/moc_predefs.h -I/Users/d_avedis/Qt5.14.2/5.14.2/clang_64/mkspecs/macx-clang -I/Users/d_avedis/Documents/GitHub/cs1230/gpu-raytracer -I/Users/d_avedis/Documents/GitHub/cs1230/gpu-raytracer/glm -I/Users/d_avedis/Documents/GitHub/cs1230/gpu-raytracer/ui -I/Users/d_avedis/Documents/GitHub/cs1230/gpu-raytracer/glew-1.10.0/include -I/Users/d_avedis/Qt5.14.2/5.14.2/clang_64/lib/QtOpenGL.framework/Headers -I/Users/d_avedis/Qt5.14.2/5.14.2/clang_64/lib/QtWidgets.framework/Headers -I/Users/d_avedis/Qt5.14.2/5.14.2/clang_64/lib/QtGui.framework/Headers -I/Users/d_avedis/Qt5.14.2/5.14.2/clang_64/lib/QtXml.framework/Headers -I/Users/d_avedis/Qt5.14.2/5.14.2/clang_64/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/12.0.0/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.0.sdk/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/Users/d_avedis/Qt5.14.2/5.14.2/clang_64/lib ui/view.h -o moc_view.cpp
@@ -1034,7 +1040,9 @@ ui_mainwindow.h: ui/mainwindow.ui \
 		gl/shaders/ShaderAttribLocations.h \
 		lib/OpenGLShape.h \
 		gl/datatype/VBO.h \
-		gl/datatype/VBOAttribMarker.h
+		gl/datatype/VBOAttribMarker.h \
+		gl/datatype/FBO.h \
+		gl/textures/TextureParameters.h
 	/Users/d_avedis/Qt5.14.2/5.14.2/clang_64/bin/uic ui/mainwindow.ui -o ui_mainwindow.h
 
 compiler_rez_source_make_all:
@@ -1151,12 +1159,25 @@ mainwindow.o: ui/mainwindow.cpp ui/mainwindow.h \
 		lib/OpenGLShape.h \
 		gl/datatype/VBO.h \
 		gl/datatype/VBOAttribMarker.h \
+		gl/datatype/FBO.h \
+		gl/textures/TextureParameters.h \
 		../../../../Qt5.14.2/5.14.2/clang_64/lib/QtOpenGL.framework/Headers/QGLFormat
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o mainwindow.o ui/mainwindow.cpp
 
 GLDebug.o: gl/GLDebug.cpp gl/GLDebug.h \
 		glew-1.10.0/include/GL/glew.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o GLDebug.o gl/GLDebug.cpp
+
+FBO.o: gl/datatype/FBO.cpp gl/datatype/FBO.h \
+		gl/textures/TextureParameters.h \
+		glew-1.10.0/include/GL/glew.h \
+		gl/GLDebug.h \
+		gl/textures/RenderBuffer.h \
+		gl/textures/DepthBuffer.h \
+		gl/textures/Texture2D.h \
+		gl/textures/Texture.h \
+		gl/textures/TextureParametersBuilder.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o FBO.o gl/datatype/FBO.cpp
 
 VAO.o: gl/datatype/VAO.cpp gl/datatype/VAO.h \
 		glew-1.10.0/include/GL/glew.h \
@@ -1292,13 +1313,6 @@ TextureParametersBuilder.o: gl/textures/TextureParametersBuilder.cpp gl/textures
 		gl/textures/TextureParameters.h \
 		glew-1.10.0/include/GL/glew.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o TextureParametersBuilder.o gl/textures/TextureParametersBuilder.cpp
-
-FullScreenQuad.o: gl/utils/FullScreenQuad.cpp gl/datatype/VBO.h \
-		glew-1.10.0/include/GL/glew.h \
-		gl/datatype/VBOAttribMarker.h \
-		gl/datatype/VAO.h \
-		gl/shaders/ShaderAttribLocations.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o FullScreenQuad.o gl/utils/FullScreenQuad.cpp
 
 OpenGLShape.o: lib/OpenGLShape.cpp lib/openglshape.h \
 		glew-1.10.0/include/GL/glew.h \
@@ -1450,13 +1464,18 @@ view.o: ui/view.cpp ui/view.h \
 		lib/OpenGLShape.h \
 		gl/datatype/VBO.h \
 		gl/datatype/VBOAttribMarker.h \
+		gl/datatype/FBO.h \
+		gl/textures/TextureParameters.h \
 		ui/viewformat.h \
 		../../../../Qt5.14.2/5.14.2/clang_64/lib/QtOpenGL.framework/Headers/QGLFormat \
 		../../../../Qt5.14.2/5.14.2/clang_64/lib/QtWidgets.framework/Headers/QApplication \
 		../../../../Qt5.14.2/5.14.2/clang_64/lib/QtWidgets.framework/Headers/qapplication.h \
 		../../../../Qt5.14.2/5.14.2/clang_64/lib/QtGui.framework/Headers/QKeyEvent \
 		../../../../Qt5.14.2/5.14.2/clang_64/lib/QtGui.framework/Headers/qevent.h \
-		lib/ResourceLoader.h
+		lib/ResourceLoader.h \
+		lib/Sphere.h \
+		gl/textures/Texture2D.h \
+		gl/textures/Texture.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o view.o ui/view.cpp
 
 viewformat.o: ui/viewformat.cpp ui/viewformat.h \
