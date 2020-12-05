@@ -34,6 +34,8 @@ private:
     int m_height;
     int m_width;
 
+    GLuint m_renderOut; //TODO: remove and abstract
+
     std::unique_ptr<Shader> m_rayTracerProgram;
 
     std::unique_ptr<Shader> m_phongProgram;

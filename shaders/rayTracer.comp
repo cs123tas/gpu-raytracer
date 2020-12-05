@@ -1,13 +1,108 @@
 #version 430 core
-layout(local_size_x = 1, local_size_y = 1) in; // size of jobs
-layout(rgba32f, binding = 0) uniform image2D imageOut;
+layout(local_size_x = 1, local_size_y = 1) in; // the size of a per pixel job
+layout(rgba32f, binding = 0) uniform image2D renderOut; 
+
+uniform mat4 M_film2World;
+uniform vec4 eye;
+uniform int depth;
+uniform int width;
+uniform int height;
+
+
+// TODO: shadows
+int checkOcclusions() {
+
+	return 0;
+}
+
+
+// TODO: reflections and refractions
+vec4 estimateIndirectLight(vec4 P, vec4 d) {
+
+	return vec4(0.f);
+}
+
+
+// TODO: diffuse and specular
+vec4 estimateDirectLight(vec4 P, vec4 d) {
+
+	return vec4(0.f);
+
+}
+
+
+vec2 getQuadradicRoots(float A, float B, float C) {
+	float det = B*B - 4*A*C;
+	
+	det = det*float(det > 0.f) + pow(10.f, 5.f)*float(det < 0.f);
+	float t1 = (-B + sqrt(det))/(2.f*A);
+	float t2 = (-B - sqrt(det))/(2.f*A);
+
+	return vec2(t1, t2);
+}
+
+
+float sphereRayIntersect(vec4 P, vec4 d) {
+	
+	float A = pow(d.x, 2.f) + pow(d.y, 2.f) + pow(d.z, 2.f);
+	float B = 2.f*(P.x*d.x + P.y*d.y + P.z*d.z);
+	float C = pow(P.x, 2.f) + pow(P.y, 2.f) + pow(P.z, 2.f) - 0.25;
+
+	vec2 tVals = getQuadradicRoots(A, B, C);
+
+
+	return min(tVals.x, tVals.y);
+}
+
+
+// TODO: how to represent the scene, I'm thinking hardcoded SDF like lab 10
+int intersect(vec4 P, vec4 d) {
+	
+	// TODO: remove, simple sphere ray intersect test
+	
+	float t = sphereRayIntersect(P, d);
+
+	return int(t < pow(10,5));
+}
+
+
+
+vec4 traceRay(vec4 P, vec4 d, int depth) {
+
+	int isIntersect = intersect(P, d);
+
+	// vec4 radiance = (isIntersect)*(estimateIndirectLight(P, d) + estimateDirectLight(P, d));
+
+	vec4 radiance = isIntersect*vec4(1.f, 0.f, 0.f, 1.f); // red sphere for now
+
+	return radiance;
+
+};
+
 
 
 void main() {
 	vec4 pixel = vec4(0.f, 0.f, 0.f, 1.f) //black
-	ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
 
-	// ray trace
+    ivec2 coords = ivec2(gl_GlobalInvocationID.xy); // I[x,y]
+	int col = coords.x;
+	int row = coords.y;
 
-	imageStore(imageOut, coords, pixel);
+	float y = 1.f - (2.f*row)/height;
+	float x = (2.f*col)/width - 1.f;
+
+	vec4 pt_film = vec4(x, y, -1.f, 1.f);
+	vec4 pt_world = M_film2World*pt_film;
+
+	vec4 d = normalize(pt_world - eye);
+	vec4 P = eye;
+
+	// TODO: retore
+	pixel = traceRay(P, d, depth);
+
+
+	// modified renderOut
+	imageStore(renderOut, coords, pixel);
 }
+
+

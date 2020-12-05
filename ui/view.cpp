@@ -41,6 +41,43 @@ View::~View()
 {
 }
 
+// TODO: not sure if useful for final product, part of benchmarking
+static void checkAvailableWorkers() {
+    /*
+     * This checks how many workers are
+     * available for the task, changes between machines
+     * Dan: max global (total) work group counts x:65535 y:65535 z:65535
+     * max local (in one shader) work group sizes x:1024 y:1024 z:64
+     */
+    int numWorkGroups[3];
+
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &numWorkGroups[0]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &numWorkGroups[1]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &numWorkGroups[2]);
+
+    printf("max global (total) work group counts x:%i y:%i z:%i\n",
+      numWorkGroups[0], numWorkGroups[1], numWorkGroups[2]);
+
+    int sizeWorkGroups[3];
+
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &sizeWorkGroups[0]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &sizeWorkGroups[1]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &sizeWorkGroups[2]);
+
+    printf("max local (in one shader) work group sizes x:%i y:%i z:%i\n",
+      sizeWorkGroups[0], sizeWorkGroups[1], sizeWorkGroups[2]);
+}
+
+void View::rebuildMatrices() {
+    m_view = glm::translate(glm::vec3(0, 0, -m_zoom)) *
+             glm::rotate(m_angleY, glm::vec3(1,0,0)) *
+             glm::rotate(m_angleX, glm::vec3(0,1,0));
+
+    m_projection = glm::perspective(0.8f, (float)width()/height(), 0.1f, 100.f);
+    update();
+}
+
+
 void View::initializeGL() {
     // All OpenGL initialization *MUST* be done during or after this
     // method. Before this method is called, there is no active OpenGL
@@ -70,6 +107,10 @@ void View::initializeGL() {
     std::string rayTracerSource = ResourceLoader::loadResourceFileToString(":/shaders/rayTracer.comp");
     m_rayTracerProgram = std::make_unique<Shader>(rayTracerSource);
 
+    bool isBenchMarkingWorkers = true;
+    if (isBenchMarkingWorkers) {
+        checkAvailableWorkers(); //see above
+    }
 
 //    // TODO: remove, only for debugging
     std::string phongVertexSource = ResourceLoader::loadResourceFileToString(":/shaders/default.vert");
@@ -106,60 +147,79 @@ void View::initializeGL() {
     m_quad->buildVAO();
 
     // Print the max FBO dimension.
-    GLint maxRenderBufferSize;
-    glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE_EXT, &maxRenderBufferSize);
-    std::cout << "Max FBO size: " << maxRenderBufferSize << std::endl;
+    bool isBenchMarkingFBO = false;
+    if (isBenchMarkingFBO) {
+        GLint maxRenderBufferSize;
+        glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE_EXT, &maxRenderBufferSize);
+        std::cout << "Max FBO size: " << maxRenderBufferSize << std::endl;
+    }
+
+    // TODO: abstract this in an FBO? I hate reading ogl inside the ui code, get the job done for now
+
+//    GLuint renderOut;
+    glGenTextures(1, &m_renderOut);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_renderOut);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_width, m_height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glBindImageTexture(0, m_renderOut, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 }
 
 void View::paintGL() {
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//    m_textureProgram->bind();
-    // TODO: Implement the demo rendering here
+    {
 
-    m_phongProgram->bind();
+        m_rayTracerProgram->bind();
+        glm::mat4 M_film2World = glm::inverse(m_view); // TODO: scale matrix
+        glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
 
-    m_phongProgram->setUniform("view", m_view);
-    m_phongProgram->setUniform("projection", m_projection);
-    m_phongProgram->setUniform("model", glm::translate(glm::vec3(0.f, 1.2f, 0.f)));
+        m_rayTracerProgram->setUniform("M_film2World", M_film2World);
+        m_rayTracerProgram->setUniform("eye", eye);
+        m_rayTracerProgram->setUniform("height", 512);
+        m_rayTracerProgram->setUniform("width", 512);
 
-    m_sphere->draw();
+        glDispatchCompute(static_cast<GLuint>(512), static_cast<GLuint>(512), 1); // 512 by 512 pixels
+    }
 
-    m_phongProgram->unbind();
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); // lock writing until ready to read
 
-    // TODO: abstract this render texture
-//    GLuint renderOut;
-//    glGenTextures(1, &renderOut);
-//    glActiveTexture(GL_TEXTURE0);
-//    glBindTexture(GL_TEXTURE_2D, renderOut);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_width, m_height, 0, GL_RGBA, GL_FLOAT, NULL);
-//    glBindImageTexture(0, renderOut, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        m_textureProgram->bind();
+        // TODO: Implement the demo rendering here
 
+    //    m_phongProgram->bind();
 
-//    m_quad->draw();
+    //    m_phongProgram->setUniform("view", m_view);
+    //    m_phongProgram->setUniform("projection", m_projection);
+    //    m_phongProgram->setUniform("model", glm::translate(glm::vec3(0.f, 1.2f, 0.f)));
 
-//    m_textureProgram->unbind();
+    //    m_sphere->draw();
+
+    //    m_phongProgram->unbind();
+
+        glActiveTexture(GL_TEXTURE0); // TODO: is this abstracted?
+        glBindTexture(GL_TEXTURE_2D, m_renderOut);
+        m_quad->draw();
+
+        m_textureProgram->unbind();
+    }
+
 
 }
 
-void View::rebuildMatrices() {
-    m_view = glm::translate(glm::vec3(0, 0, -m_zoom)) *
-             glm::rotate(m_angleY, glm::vec3(1,0,0)) *
-             glm::rotate(m_angleX, glm::vec3(0,1,0));
-
-    m_projection = glm::perspective(0.8f, (float)width()/height(), 0.1f, 100.f);
-    update();
-}
 
 void View::resizeGL(int w, int h) {
     float ratio = static_cast<QGuiApplication *>(QCoreApplication::instance())->devicePixelRatio();
     w = static_cast<int>(w / ratio);
     h = static_cast<int>(h / ratio);
-    glViewport(0, 0, w, h);
+
+    w = 512;
+    h = 512;
+    glViewport(0, 0, w, h); // TODO: restore, keep it here for compute concerns
 
     m_fbo = std::make_unique<FBO>(1, FBO::DEPTH_STENCIL_ATTACHMENT::NONE, w, h, TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE);
 }
