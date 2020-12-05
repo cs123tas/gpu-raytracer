@@ -1,4 +1,7 @@
 #version 430 core
+
+#define MAX_VAL pow(10,5.f)
+
 layout(local_size_x = 1, local_size_y = 1) in; // the size of a per pixel job
 layout(rgba32f, binding = 0) uniform image2D renderOut; 
 
@@ -8,23 +11,48 @@ uniform int depth;
 uniform int width;
 uniform int height;
 
+struct Ray {
+	vec4 P; 
+	vec4 d;
+};
+
+struct SurfaceElement {
+	float t;
+	vec4 intersection; // world space intersect
+	vec4 normal;
+	
+	vec4 diffuseColor;
+	vec4 specularColor;
+	vec4 reflectedColor;
+	vec4 tranparencyColor;
+};
+
+
+struct LightData {
+	int type;
+	vec4 color;
+};
+
 
 // TODO: shadows
-int checkOcclusions() {
+int checkOcclusions(inout SurfaceElement surfel, inout LightData lightData) {
 
 	return 0;
 }
 
 
 // TODO: reflections and refractions
-vec4 estimateIndirectLight(vec4 P, vec4 d) {
+vec4 estimateIndirectLight(inout SurfaceElement surfel, inout Ray ray) {
 
 	return vec4(0.f);
 }
 
 
 // TODO: diffuse and specular
-vec4 estimateDirectLight(vec4 P, vec4 d) {
+vec4 estimateDirectLight(inout SurfaceElement surfel, inout Ray ray) {
+	
+	vec4 kdOd = surfel.diffuseColor;
+	vec4 ksOs = surfel.specularColor;
 
 	return vec4(0.f);
 
@@ -42,8 +70,10 @@ vec2 getQuadradicRoots(float A, float B, float C) {
 }
 
 
-float sphereRayIntersect(vec4 P, vec4 d) {
-	
+float sphereRayIntersect(inout Ray ray) {
+	vec4 P = ray.P;
+	vec4 d = ray.d;
+
 	float A = pow(d.x, 2.f) + pow(d.y, 2.f) + pow(d.z, 2.f);
 	float B = 2.f*(P.x*d.x + P.y*d.y + P.z*d.z);
 	float C = pow(P.x, 2.f) + pow(P.y, 2.f) + pow(P.z, 2.f) - 0.25;
@@ -56,25 +86,36 @@ float sphereRayIntersect(vec4 P, vec4 d) {
 
 
 // TODO: how to represent the scene, I'm thinking hardcoded SDF like lab 10
-int intersect(vec4 P, vec4 d) {
+int intersect(inout Ray ray, inout SurfaceElement surfel) {
 	
 	// TODO: remove, simple sphere ray intersect test
 	
-	float t = sphereRayIntersect(P, d);
+	float t = sphereRayIntersect(ray);
+	if (t < MAX_VAL) {
+		// TODO: paint surfel here
+		return 1;
 
-	return int(t < pow(10,5));
+	}
+	return 0;
 }
 
 
+// inout is how you pass by ref in glsl
+vec4 traceRay(inout Ray ray, int depth) {
 
-vec4 traceRay(vec4 P, vec4 d, int depth) {
+	SurfaceElement surfel;
+	int isIntersect = intersect(ray, surfel);
 
-	int isIntersect = intersect(P, d);
+	vec4 radiance = vec4(0.f, 0.f, 0.f, 0.f);
+	// TODO: restore when ready
+	if (isIntersect == 1) {
+		radiance = estimateDirectLight(surfel, ray) + estimateIndirectLight(surfel, ray);
+	}
 
-	// vec4 radiance = (isIntersect)*(estimateIndirectLight(P, d) + estimateDirectLight(P, d));
-
-	vec4 radiance = isIntersect*vec4(1.f, 0.f, 0.f, 1.f); // red sphere for now
-
+	if (isIntersect == 1) {
+		radiance = vec4(1.f, 0.f, 0.f, 1.f); // red sphere for now
+	} 
+	
 	return radiance;
 
 };
@@ -82,11 +123,12 @@ vec4 traceRay(vec4 P, vec4 d, int depth) {
 
 
 void main() {
-	vec4 pixel = vec4(0.f, 0.f, 0.f, 1.f) //black
+	vec4 pixel = vec4(0.f, 0.f, 0.f, 1.f); //black
 
-    ivec2 coords = ivec2(gl_GlobalInvocationID.xy); // I[x,y]
-	int col = coords.x;
-	int row = coords.y;
+	ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+	
+	int col = int(pixelCoords.x);
+	int row = int(pixelCoords.y);
 
 	float y = 1.f - (2.f*row)/height;
 	float x = (2.f*col)/width - 1.f;
@@ -97,12 +139,30 @@ void main() {
 	vec4 d = normalize(pt_world - eye);
 	vec4 P = eye;
 
-	// TODO: retore
-	pixel = traceRay(P, d, depth);
+	// TODO: restore
+	Ray ray;
+	ray.P = P;
+	ray.d = d;
+	pixel = traceRay(ray, depth);
 
+	// // TODO: remove debugging line: should make a blue circle on the screen
+	d = vec4(0.f, 0.f, -1.f, 0.f);
+	vec4 sphereCenter = vec4(0.f, 0.f, -10.f, 0.f);
+	float R = 1.f;
+	vec4 camToSphere = P - sphereCenter;
+	float B = dot(d, camToSphere);
+	float C = dot(camToSphere, camToSphere) - R*R;
+	float det = B*B - C;
+	if (det >= 0.f) {
+		pixel = vec4(0.f, 0.f, 1.0, 1.0);
+	}
+
+    
+	// // TODO: remove debugging line: should make everything red if works
+	// pixel = vec4(1.f, 0.f, 0.f, 1.f);
 
 	// modified renderOut
-	imageStore(renderOut, coords, pixel);
+	imageStore(renderOut, pixelCoords, pixel);
 }
 
 

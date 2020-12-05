@@ -11,6 +11,7 @@
 
 namespace CS123 { namespace GL {
 
+// New constructor for compute shader
 Shader::Shader(const std::string& computeSource)
 {
     createProgramID();

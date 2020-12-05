@@ -34,12 +34,9 @@ private:
     int m_height;
     int m_width;
 
-    GLuint m_renderOut; //TODO: remove and abstract
+    GLuint m_renderOut; //TODO: remove and abstract into texture class
 
     std::unique_ptr<Shader> m_rayTracerProgram;
-
-    std::unique_ptr<Shader> m_phongProgram;
-    std::unique_ptr<OpenGLShape> m_sphere;
 
     std::unique_ptr<Shader> m_textureProgram;
     std::unique_ptr<OpenGLShape> m_quad;

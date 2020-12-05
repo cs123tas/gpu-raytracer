@@ -50,7 +50,6 @@ static void checkAvailableWorkers() {
      * max local (in one shader) work group sizes x:1024 y:1024 z:64
      */
     int numWorkGroups[3];
-
     glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &numWorkGroups[0]);
     glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &numWorkGroups[1]);
     glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &numWorkGroups[2]);
@@ -59,7 +58,6 @@ static void checkAvailableWorkers() {
       numWorkGroups[0], numWorkGroups[1], numWorkGroups[2]);
 
     int sizeWorkGroups[3];
-
     glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &sizeWorkGroups[0]);
     glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &sizeWorkGroups[1]);
     glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &sizeWorkGroups[2]);
@@ -102,7 +100,6 @@ void View::initializeGL() {
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
-
     // Loading in our ray tracer!
     std::string rayTracerSource = ResourceLoader::loadResourceFileToString(":/shaders/rayTracer.comp");
     m_rayTracerProgram = std::make_unique<Shader>(rayTracerSource);
@@ -112,19 +109,7 @@ void View::initializeGL() {
         checkAvailableWorkers(); //see above
     }
 
-//    // TODO: remove, only for debugging
-    std::string phongVertexSource = ResourceLoader::loadResourceFileToString(":/shaders/default.vert");
-    std::string phongFragementSource = ResourceLoader::loadResourceFileToString(":/shaders/default.frag");
-    m_phongProgram = std::make_unique<Shader>(phongVertexSource, phongFragementSource);
-
-    std::vector<GLfloat> sphereData = SPHERE_VERTEX_POSITIONS;
-    m_sphere = std::make_unique<OpenGLShape>();
-    m_sphere->setVertexData(&sphereData[0], sphereData.size(), VBO::GEOMETRY_LAYOUT::LAYOUT_TRIANGLES, NUM_SPHERE_VERTICES);
-    m_sphere->setAttribute(ShaderAttrib::POSITION, 3, 0, VBOAttribMarker::DATA_TYPE::FLOAT, false);
-    m_sphere->setAttribute(ShaderAttrib::NORMAL, 3, 0, VBOAttribMarker::DATA_TYPE::FLOAT, false);
-    m_sphere->buildVAO();
-
-
+    // Full screen quad
     std::string quadVertexSource = ResourceLoader::loadResourceFileToString(":/shaders/quad.vert");
     std::string quadFragmentSource = ResourceLoader::loadResourceFileToString(":/shaders/quad.frag");
     m_textureProgram = std::make_unique<Shader>(quadVertexSource, quadFragmentSource);
@@ -154,9 +139,7 @@ void View::initializeGL() {
         std::cout << "Max FBO size: " << maxRenderBufferSize << std::endl;
     }
 
-    // TODO: abstract this in an FBO? I hate reading ogl inside the ui code, get the job done for now
-
-//    GLuint renderOut;
+    // TODO: abstract this in the texure class, remove instance m_renderOut
     glGenTextures(1, &m_renderOut);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_renderOut);
@@ -164,14 +147,13 @@ void View::initializeGL() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_width, m_height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_height, m_width, 0, GL_RGBA, GL_FLOAT, NULL);
     glBindImageTexture(0, m_renderOut, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 }
 
 void View::paintGL() {
 
-    {
-
+    { // ray tracer program block
         m_rayTracerProgram->bind();
         glm::mat4 M_film2World = glm::inverse(m_view); // TODO: scale matrix
         glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
@@ -181,34 +163,24 @@ void View::paintGL() {
         m_rayTracerProgram->setUniform("height", 512);
         m_rayTracerProgram->setUniform("width", 512);
 
+        // abstract out? unique to compute shader which is why I think not
         glDispatchCompute(static_cast<GLuint>(512), static_cast<GLuint>(512), 1); // 512 by 512 pixels
     }
 
-    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); // lock writing until ready to read
+     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); // lock writing until ready to read
 
-    {
+    {  // traditional rendering block
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         m_textureProgram->bind();
         // TODO: Implement the demo rendering here
 
-    //    m_phongProgram->bind();
-
-    //    m_phongProgram->setUniform("view", m_view);
-    //    m_phongProgram->setUniform("projection", m_projection);
-    //    m_phongProgram->setUniform("model", glm::translate(glm::vec3(0.f, 1.2f, 0.f)));
-
-    //    m_sphere->draw();
-
-    //    m_phongProgram->unbind();
-
         glActiveTexture(GL_TEXTURE0); // TODO: is this abstracted?
         glBindTexture(GL_TEXTURE_2D, m_renderOut);
         m_quad->draw();
-
-        m_textureProgram->unbind();
     }
 
-
+     m_textureProgram->unbind();
+     m_rayTracerProgram->unbind();
 }
 
 
