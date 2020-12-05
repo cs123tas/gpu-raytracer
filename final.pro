@@ -23,6 +23,7 @@ win32 {
 
 SOURCES += ui/mainwindow.cpp \
     gl/GLDebug.cpp \
+    gl/datatype/FBO.cpp \
     gl/datatype/VAO.cpp \
     gl/datatype/VBO.cpp \
     gl/datatype/VBOAttribMarker.cpp \
@@ -33,7 +34,6 @@ SOURCES += ui/mainwindow.cpp \
     gl/textures/Texture2D.cpp \
     gl/textures/TextureParameters.cpp \
     gl/textures/TextureParametersBuilder.cpp \
-    gl/utils/FullScreenQuad.cpp \
     lib/OpenGLShape.cpp \
     lib/ResourceLoader.cpp \
     main.cpp \
@@ -44,6 +44,7 @@ SOURCES += ui/mainwindow.cpp \
 
 HEADERS += ui/mainwindow.h \
     gl/GLDebug.h \
+    gl/datatype/FBO.h \
     gl/datatype/VAO.h \
     gl/datatype/VBO.h \
     gl/datatype/VBOAttribMarker.h \
@@ -102,4 +103,5 @@ DISTFILES += \
     shaders/normals/normalsArrow.frag \
     shaders/normals/normalsArrow.vert \
     shaders/quad.frag \
-    shaders/quad.vert
+    shaders/quad.vert \
+    shaders/traceRay.comp

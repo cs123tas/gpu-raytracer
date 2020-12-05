@@ -4,5 +4,6 @@
         <file alias="default.vert">shaders/shader.vert</file>
         <file alias="quad.vert">shaders/quad.vert</file>
         <file alias="quad.frag">shaders/quad.frag</file>
+	<file alias="traceRay.comp>shaders/traceRay.comp</file>
     </qresource>
 </RCC>
