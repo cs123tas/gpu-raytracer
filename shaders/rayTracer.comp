@@ -2,14 +2,16 @@
 
 #define MAX_VAL pow(10,5.f)
 
-layout(local_size_x = 1, local_size_y = 1) in; // the size of a per pixel job
+layout(local_size_x = 1, local_size_y = 1) in; // the workload of a job is at pixel level
 layout(rgba32f, binding = 0) uniform image2D renderOut; 
 
-uniform mat4 M_film2World;
-uniform vec4 eye;
-uniform int depth;
-uniform int width;
-uniform int height;
+//uniform mat4 M_film2World;
+//uniform vec4 eye;
+//uniform int depth;
+//uniform int width;
+//uniform int height;
+//uniform float time;
+
 
 struct Ray {
 	vec4 P; 
@@ -106,7 +108,7 @@ vec4 traceRay(inout Ray ray, int depth) {
 	SurfaceElement surfel;
 	int isIntersect = intersect(ray, surfel);
 
-	vec4 radiance = vec4(0.f, 0.f, 0.f, 0.f);
+	vec4 radiance = vec4(0.f, 0.f, 0.f, 1.f);
 	// TODO: restore when ready
 	if (isIntersect == 1) {
 		radiance = estimateDirectLight(surfel, ray) + estimateIndirectLight(surfel, ray);
@@ -117,7 +119,6 @@ vec4 traceRay(inout Ray ray, int depth) {
 	} 
 	
 	return radiance;
-
 };
 
 
@@ -126,38 +127,46 @@ void main() {
 	vec4 pixel = vec4(0.f, 0.f, 0.f, 1.f); //black
 
 	ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 dims = imageSize(renderOut);
 	
+	// pixel = vec4(gl_GlobalInvocationID.xy/512, 0.f, 1.f);
+
 	int col = int(pixelCoords.x);
 	int row = int(pixelCoords.y);
-
-	float y = 1.f - (2.f*row)/height;
-	float x = (2.f*col)/width - 1.f;
-
-	vec4 pt_film = vec4(x, y, -1.f, 1.f);
-	vec4 pt_world = M_film2World*pt_film;
-
-	vec4 d = normalize(pt_world - eye);
-	vec4 P = eye;
-
-	// TODO: restore
-	Ray ray;
-	ray.P = P;
-	ray.d = d;
-	pixel = traceRay(ray, depth);
-
-	// // TODO: remove debugging line: should make a blue circle on the screen
-	d = vec4(0.f, 0.f, -1.f, 0.f);
-	vec4 sphereCenter = vec4(0.f, 0.f, -10.f, 0.f);
-	float R = 1.f;
-	vec4 camToSphere = P - sphereCenter;
-	float B = dot(d, camToSphere);
-	float C = dot(camToSphere, camToSphere) - R*R;
-	float det = B*B - C;
-	if (det >= 0.f) {
-		pixel = vec4(0.f, 0.f, 1.0, 1.0);
+	if (col > 180 && col < 210) {
+		pixel = vec4(1.f, 0.f, 0.f, 1.f);
 	}
 
-    
+//	float x = (2.f*float(col))/dims.x - 1.f;
+//	float y = 1.f - (2*float(row))/dims.y;
+//
+//	vec4 pt_film = vec4(x, y, 0.f, 1.f);
+//	vec4 pt_world = M_film2World*pt_film;
+//
+//	vec4 d = normalize(pt_world - eye);
+//	vec4 P = eye;
+
+	// TODO: restore
+	// Ray ray;
+	// ray.P = P;
+	// ray.d = d;
+	// pixel = traceRay(ray, depth);
+
+	// TODO: remove debugging line: should make a blue circle on the screen
+//	P = vec4(x, y, 0.f, 0.f);
+//	d = vec4(0.f, 0.f, -1.f, 0.f);
+//	vec4 sphereCenter =	vec4(0.f, 0.f, -10.f, 0.f);
+//	float R = 1.f;
+//	vec4 camToSphere = P - sphereCenter;
+//	float B = dot(d, camToSphere);
+//	float C = dot(camToSphere, camToSphere) - R*R;
+//	float det = B*B - C;
+//	if (det >= 0.f) {
+//		pixel = vec4(0.f, 0.f, 1.0, 1.0); // blue spehere it works
+//	}
+
+	// pixel = vec4(1.f, 0.f, 0.f, 1.f);
+
 	// // TODO: remove debugging line: should make everything red if works
 	// pixel = vec4(1.f, 0.f, 0.f, 1.f);
 

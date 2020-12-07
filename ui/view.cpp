@@ -16,8 +16,8 @@ View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
     m_time(),
     m_timer(),
     m_captureMouse(false),
-    m_height(height()),
-    m_width(width()),
+    m_height(std::min(1000,height())),
+    m_width(std::min(1000,width())),
     m_angleX(-0.5f),
     m_angleY(0.5f),
     m_zoom(4.f)
@@ -104,7 +104,7 @@ void View::initializeGL() {
     std::string rayTracerSource = ResourceLoader::loadResourceFileToString(":/shaders/rayTracer.comp");
     m_rayTracerProgram = std::make_unique<Shader>(rayTracerSource);
 
-    bool isBenchMarkingWorkers = true;
+    bool isBenchMarkingWorkers = false;
     if (isBenchMarkingWorkers) {
         checkAvailableWorkers(); //see above
     }
@@ -147,7 +147,7 @@ void View::initializeGL() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_height, m_width, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 512, 512, 0, GL_RGBA, GL_FLOAT, NULL);
     glBindImageTexture(0, m_renderOut, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 }
 
@@ -158,10 +158,11 @@ void View::paintGL() {
         glm::mat4 M_film2World = glm::inverse(m_view); // TODO: scale matrix
         glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
 
-        m_rayTracerProgram->setUniform("M_film2World", M_film2World);
-        m_rayTracerProgram->setUniform("eye", eye);
-        m_rayTracerProgram->setUniform("height", 512);
-        m_rayTracerProgram->setUniform("width", 512);
+//        m_rayTracerProgram->setUniform("M_film2World", M_film2World);
+//        m_rayTracerProgram->setUniform("eye", eye);
+//        m_rayTracerProgram->setUniform("height", m_height);
+//        m_rayTracerProgram->setUniform("width", m_width);
+//        m_rayTracerProgram->setUniform("time", m_time.second());
 
         // abstract out? unique to compute shader which is why I think not
         glDispatchCompute(static_cast<GLuint>(512), static_cast<GLuint>(512), 1); // 512 by 512 pixels
@@ -178,9 +179,6 @@ void View::paintGL() {
         glBindTexture(GL_TEXTURE_2D, m_renderOut);
         m_quad->draw();
     }
-
-     m_textureProgram->unbind();
-     m_rayTracerProgram->unbind();
 }
 
 
@@ -189,11 +187,11 @@ void View::resizeGL(int w, int h) {
     w = static_cast<int>(w / ratio);
     h = static_cast<int>(h / ratio);
 
-    w = 512;
-    h = 512;
+    m_width = std::min(w, 1000);
+    m_height = std::min(h, 1000);
     glViewport(0, 0, w, h); // TODO: restore, keep it here for compute concerns
 
-    m_fbo = std::make_unique<FBO>(1, FBO::DEPTH_STENCIL_ATTACHMENT::NONE, w, h, TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE);
+    m_fbo = std::make_unique<FBO>(1, FBO::DEPTH_STENCIL_ATTACHMENT::NONE, m_width, m_height, TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE);
 }
 
 void View::mousePressEvent(QMouseEvent *event) {
