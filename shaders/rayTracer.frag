@@ -162,26 +162,34 @@ void main() {
 //	} else if (y > 0)  {
 //		fragColor += vec4(0.f, 1.f, 0.f, 0.f); // positiive x should be more green
 //	}
-
-	vec4 pt_film = vec4(x, y, 0.f, 1.f);
+	
+	vec4 pt_film = vec4(x, y, -1.f, 1.f);
 	vec4 pt_world = M_film2World*pt_film;
 
-//	vec4 d = normalize(pt_world - eye);
 	vec4 d = vec4(0.f, 0.f, -1.f, 0.f);
 	vec4 P = vec4(x, y, 0.f, 1.f);
+//	vec4 P = M_film2World*eye;
+//	vec4 d = normalize(pt_world - eye);
 
-	vec4 sphereCenter = vec4(0.f, 1.2f, 0.f, 1.f);
-	float R = 1.f;
+	float R = 0.25f;
 
 	float A = pow(d.x, 2.f) + pow(d.y, 2.f) + pow(d.z, 2.f);
 	float B = 2.f*(P.x*d.x + P.y*d.y + P.z*d.z);
-	float C = pow(P.x, 2.f) + pow(P.y, 2.f) + pow(P.z, 2.f) - 0.25;
+	float C = pow(P.x, 2.f) + pow(P.y, 2.f) + pow(P.z, 2.f) - R*R;
+
+	vec2 t = getQuadradicRoots(A, B, C);
 
 	float det = B*B - 4*A*C;
 	if (det >= 0.f) {
-		fragColor = vec4(0.2f, 0.3f, 0.5f, 1.f);
+		float hitT = min(t.x, t.y);
+		vec4 WorldSpace_position = P + hitT*d;
+		vec4 WorldSpace_toLight = normalize(vec4(10.f)- WorldSpace_position);
+		vec4 WorldSpace_normal = normalize(WorldSpace_position);
+		float nDotL =  max(0.0, dot(normalize(WorldSpace_normal), WorldSpace_toLight));
+		fragColor = vec4(0.3*nDotL, 0.2*nDotL, 0.5*nDotL, 1.f);
+
 	} else {
-		fragColor = vec4(0.f, 0.f, 0.f, 0.f);
+		fragColor = vec4(0.f, 0.f, 0.f, 1.f);
 	}
 
 	// TODO: restore

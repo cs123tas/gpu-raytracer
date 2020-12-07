@@ -117,7 +117,7 @@ void View::initializeGL() {
 }
 
 void View::paintGL() {
-    if (false) {
+    if (true) {
         paintWithFragmentShaders();
     } else {
         paintWithComputeShaders();
@@ -179,7 +179,7 @@ void View::paintWithComputeShaders(){
     // TODO: compute shaders;
     { // ray tracer program block
         m_rayTracerCompProgram->bind();
-        glm::mat4 M_film2World = glm::inverse(m_view); // TODO: scale matrix
+        glm::mat4 M_film2World = glm::inverse(m_scale*m_view); // TODO: scale matrix
         glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
 
         m_rayTracerCompProgram->setUniform("M_film2World", M_film2World);

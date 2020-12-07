@@ -1,7 +1,9 @@
 {
   "ExpandedNodes": [
     "",
-    "\\shaders"
+    "\\shaders",
+    "\\ui"
   ],
+  "SelectedNode": "\\shaders\\shader.frag",
   "PreviewInSolutionExplorer": false
 }
