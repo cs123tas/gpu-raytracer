@@ -50,7 +50,7 @@ int checkOcclusions(inout SurfaceElement surfel, inout LightData lightData) {
 }
 
 
-// TODO: reflections and refractions
+// TODO: reflections and refractions, no recursion, just use secondary rays unless the fancy wavefront pattern
 vec4 estimateIndirectLight(inout SurfaceElement surfel, inout Ray ray) {
 
 	return vec4(0.f);
@@ -63,8 +63,20 @@ vec4 estimateDirectLight(inout SurfaceElement surfel, inout Ray ray) {
 	vec4 kdOd = surfel.diffuseColor;
 	vec4 ksOs = surfel.specularColor;
 
-	return vec4(0.f);
+	vec4 lightPosition = vec4(10.f); // TODO: restore
+	vec4 vertex = surfel.intersection;
+	vec4 n = normalize(vertex); // TODO: restore
+	vec4 vertexToLight = normalize(vec4(10.f)- vertex);
+	float cosTheta =  max(0.f, dot(normalize(n), vertexToLight));
+	vec4 diffuseComponent = vec4(0.3, 0.2, 0.5, 1.f)*cosTheta; // mellow blue sphere
 
+	vec4 reflected = -normalize(2.f*n*(dot(n, vertexToLight)) - vertexToLight);
+    float cosPhi = max(0.f, dot(reflected, ray.d));
+    vec4 specularComponent = vec4(1.f, 1.f, 1.f, 1.f)*pow(cosPhi, 4); // with white highlights
+//
+    vec4 radiance = diffuseComponent + specularComponent;
+
+	return radiance;
 }
 
 
@@ -85,9 +97,10 @@ float sphereRayIntersect(inout Ray ray, inout SurfaceElement surfel) {
 	vec4 P = ray.P;
 	vec4 d = ray.d;
 
+	float R = 0.5f;
 	float A = pow(d.x, 2.f) + pow(d.y, 2.f) + pow(d.z, 2.f);
 	float B = 2.f*(P.x*d.x + P.y*d.y + P.z*d.z);
-	float C = pow(P.x, 2.f) + pow(P.y, 2.f) + pow(P.z, 2.f) - 0.25;
+	float C = pow(P.x, 2.f) + pow(P.y, 2.f) + pow(P.z, 2.f) - R*R;
 
 	vec2 tVals = getQuadradicRoots(A, B, C);
 
@@ -98,52 +111,53 @@ float sphereRayIntersect(inout Ray ray, inout SurfaceElement surfel) {
 // TODO: how to represent the scene, I'm thinking hardcoded SDF like lab 10
 bool intersect(inout Ray ray, inout SurfaceElement surfel) {
 	
-//	// TODO: remove, simple sphere ray intersect test
-//	float t = sphereRayIntersect(ray);
-//	if (t < MAX_VAL) {
-//		// TODO: paint surfel here
-//		return 1;
-//	}
-//	return 0;
-
+	// TODO: remove, simple sphere ray intersect test
+	float t = sphereRayIntersect(ray, surfel);
+	if (t < MAX_VAL) {
+		// TODO: paint surfel here
+		surfel.intersection = ray.P + t*ray.d;
+		surfel.normal = normalize(surfel.intersection); // TODO: change when ready for other shapes
+		return true;
+	} else {
+		return false;
+	}
 //	float t = sphereRayIntersect(ray, surfel);
 //	if (t < MAX_VAL) {
 //		return true;
 //	}
 //	return false;
 
-	vec4 P = ray.P;
-	vec4 d = ray.d;
-
-	float A = pow(d.x, 2.f) + pow(d.y, 2.f) + pow(d.z, 2.f);
-	float B = 2.f*(P.x*d.x + P.y*d.y + P.z*d.z);
-	float C = pow(P.x, 2.f) + pow(P.y, 2.f) + pow(P.z, 2.f) - 5;
-
-	float det = B*B - 4*A*C;
-	if (det < 0.f) {
-		return false;
-	} else {
-		return true;
-	}
-
+//	vec4 P = ray.P;
+//	vec4 d = ray.d;
+//
+//	float A = pow(d.x, 2.f) + pow(d.y, 2.f) + pow(d.z, 2.f);
+//	float B = 2.f*(P.x*d.x + P.y*d.y + P.z*d.z);
+//	float C = pow(P.x, 2.f) + pow(P.y, 2.f) + pow(P.z, 2.f) - 5;
+//
+//	float det = B*B - 4*A*C;
+//	if (det < 0.f) {
+//		return false;
+//	} else {
+//		return true;
+//	}
 }
 
 
 // inout is how you pass by ref in glsl
-vec4 traceRay(inout Ray ray, int depth) {
+vec4 traceRay(inout Ray ray) {
 
 	SurfaceElement surfel;
 	bool isIntersect = intersect(ray, surfel);
 
 	vec4 radiance = vec4(0.f, 0.f, 0.f, 1.f);
 	// TODO: restore when ready
-//	if (isIntersect == 1) {
-//		radiance = estimateDirectLight(surfel, ray) + estimateIndirectLight(surfel, ray);
-//	}
-
 	if (isIntersect) {
-		radiance = vec4(0.5f*ray.d.x + 0.5f, 0.5f*ray.d.y + 0.5f, 0.5f*ray.d.z + 0.5f, 1.f); // red sphere for now
-	} 
+		radiance = estimateDirectLight(surfel, ray) + estimateIndirectLight(surfel, ray);
+	}
+
+//	if (isIntersect) {
+//		radiance = vec4(0.5f*ray.d.x + 0.5f, 0.5f*ray.d.y + 0.5f, 0.5f*ray.d.z + 0.5f, 1.f); // red sphere for now
+//	} 
 	
 	return radiance;
 };
@@ -151,6 +165,7 @@ vec4 traceRay(inout Ray ray, int depth) {
 
 
 // TODO: Use timer for animation
+// TODO: send in model matrix?
 void main() {
 	float x = ((2.f*float(gl_FragCoord.x))/dimensions.x) - 1.f;
 	float y = ((2.f*float(gl_FragCoord.y))/dimensions.y) - 1.f;
@@ -162,7 +177,9 @@ void main() {
 //	} else if (y > 0)  {
 //		fragColor += vec4(0.f, 1.f, 0.f, 0.f); // positiive x should be more green
 //	}
-	
+
+
+	// TODO: why isnt this working (perspective)	
 	vec4 pt_film = vec4(x, y, -1.f, 1.f);
 	vec4 pt_world = M_film2World*pt_film;
 
@@ -171,41 +188,37 @@ void main() {
 //	vec4 P = M_film2World*eye;
 //	vec4 d = normalize(pt_world - eye);
 
-	float R = 0.25f;
+	Ray primaryRay;
+	primaryRay.P = P;
+	primaryRay.d = d;
 
-	float A = pow(d.x, 2.f) + pow(d.y, 2.f) + pow(d.z, 2.f);
-	float B = 2.f*(P.x*d.x + P.y*d.y + P.z*d.z);
-	float C = pow(P.x, 2.f) + pow(P.y, 2.f) + pow(P.z, 2.f) - R*R;
+	fragColor = vec4(0.f, 0.f, 0.f, 1.f);
+	fragColor += traceRay(primaryRay);
 
-	vec2 t = getQuadradicRoots(A, B, C);
-
-	float det = B*B - 4*A*C;
-	if (det >= 0.f) {
-		float hitT = min(t.x, t.y);
-		vec4 WorldSpace_position = P + hitT*d;
-		vec4 WorldSpace_toLight = normalize(vec4(10.f)- WorldSpace_position);
-		vec4 WorldSpace_normal = normalize(WorldSpace_position);
-		float nDotL =  max(0.0, dot(normalize(WorldSpace_normal), WorldSpace_toLight));
-		fragColor = vec4(0.3*nDotL, 0.2*nDotL, 0.5*nDotL, 1.f);
-
-	} else {
-		fragColor = vec4(0.f, 0.f, 0.f, 1.f);
-	}
-
-	// TODO: restore
-//	Ray ray;
-//	ray.P = P;
-//	ray.d = d;
-
-//	if (x*x + y*y < 0.5f) {
-//		fragColor = vec4(1.f, 0.f, 0.f, 1.f);
-//	} else { 
-//		fragColor = vec4(0.f, 1.f, 0.f, 1.f);
+//	float R = 0.25f;
+//	float A = pow(d.x, 2.f) + pow(d.y, 2.f) + pow(d.z, 2.f);
+//	float B = 2.f*(P.x*d.x + P.y*d.y + P.z*d.z);
+//	float C = pow(P.x, 2.f) + pow(P.y, 2.f) + pow(P.z, 2.f) - R*R;
+//
+//	vec2 t = getQuadradicRoots(A, B, C);
+//
+//	float det = B*B - 4*A*C;
+//	if (det >= 0.f) {
+//		float hitT = min(t.x, t.y);
+//		vec4 vertex = P + hitT*d;
+//		vec4 vertexToLight = normalize(vec4(10.f)- vertex);
+//		vec4 vertexNormal = normalize(vertex);
+//		float cosTheta =  max(0.f, dot(normalize(vertexNormal), vertexToLight));
+//		vec4 diffuseComponent = vec4(0.3, 0.2, 0.5, 1.f)*cosTheta; // mellow blue sphere
+//		
+//		vec4 reflected = -normalize(2.f*vertexNormal*(dot(vertexNormal, vertexToLight)) - vertexToLight);
+//		float cosPhi = max(0.f, dot(reflected, d));
+//		vec4 specularComponent = vec4(1.f, 1.f, 1.f, 1.f)*cosPhi; // with white highlights
+//
+//		fragColor = diffuseComponent + specularComponent;
+//
+//	} else {
+//		fragColor = vec4(0.f, 0.f, 0.f, 1.f);
 //	}
 
-//	fragColor = traceRay(ray, depth);
-
-//	if (ray.d.z >= 0.f) {
-//		fragColor = vec4(1.f, 0.f, 0.f, 1.f);
-//	}
 }
