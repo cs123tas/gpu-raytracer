@@ -4,7 +4,7 @@
 Use the graphics card for doing our ray tracing computations in parallel.
 
 ### How:
-We can render our scene to a textured fullscreen quad, doing all the compute in a fragment or compute shader.  In this way, we cast a ray from each fragment or pixel, respectively, doing all the compute for a single ray in the shader.
+We can render our scene to a textured fullscreen quad, doing all the compute in a fragment or compute shader.  In this way, we cast a ray from each fragment or pixel, respectively, doing all the compute for a single ray in the shader.  We tried this two ways:
 
 - Fragment Shader:  We've seen these before.  We're doing very similar things as we did in Lab 7 and 8 with frame buffers.  The difference is that instead of doing blur compute, we're writing a whole ray tracer in the fragment shader!
 
