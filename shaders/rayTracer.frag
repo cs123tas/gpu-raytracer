@@ -1,8 +1,9 @@
 #version 430 core
-#define MAX_VAL  1000000000
+#define MAX_VAL  10000.0
 #define PI 3.1415926535897932384626433832795
 #define PLANE   0
 #define SPHERE  1
+#define BOX 2
 
 in vec2 texCoord;
 
@@ -38,6 +39,8 @@ struct LightData {
 	int type;
 	vec4 color;
 };
+
+
 
 
 // TODO: shadows
@@ -103,11 +106,25 @@ bool intersect(inout Ray ray, inout SurfaceElement surfel) {
 //	}
 //	return 0;
 
-	float t = sphereRayIntersect(ray, surfel);
-	if (t < MAX_VAL) {
+//	float t = sphereRayIntersect(ray, surfel);
+//	if (t < MAX_VAL) {
+//		return true;
+//	}
+//	return false;
+
+	vec4 P = ray.P;
+	vec4 d = ray.d;
+
+	float A = pow(d.x, 2.f) + pow(d.y, 2.f) + pow(d.z, 2.f);
+	float B = 2.f*(P.x*d.x + P.y*d.y + P.z*d.z);
+	float C = pow(P.x, 2.f) + pow(P.y, 2.f) + pow(P.z, 2.f) - 5;
+
+	float det = B*B - 4*A*C;
+	if (det < 0.f) {
+		return false;
+	} else {
 		return true;
 	}
-	return false;
 
 }
 
@@ -125,7 +142,7 @@ vec4 traceRay(inout Ray ray, int depth) {
 //	}
 
 	if (isIntersect) {
-		radiance = vec4(1.f, 0.f, 0.f, 1.f); // red sphere for now
+		radiance = vec4(0.5f*ray.d.x + 0.5f, 0.5f*ray.d.y + 0.5f, 0.5f*ray.d.z + 0.5f, 1.f); // red sphere for now
 	} 
 	
 	return radiance;
@@ -135,33 +152,52 @@ vec4 traceRay(inout Ray ray, int depth) {
 
 // TODO: Use timer for animation
 void main() {
-//	float x = ((2.f*float(gl_FragCoord.x))/dimensions.x) - 1.f;
-//	float y = 1.f - ((2.f*float(gl_FragCoord.y))/dimensions.y);
-	
-	float x = gl_FragCoord.x;
-	float y = gl_FragCoord.y;
+	float x = ((2.f*float(gl_FragCoord.x))/dimensions.x) - 1.f;
+	float y = ((2.f*float(gl_FragCoord.y))/dimensions.y) - 1.f;
+
+	vec4 radiance = vec4(0.f, 0.f, 0.f, 1.f);
+
+//	if (y < 0) {
+//		fragColor += vec4(1.f, 0.f, 0.f, 0.f); // negative x should be more red
+//	} else if (y > 0)  {
+//		fragColor += vec4(0.f, 1.f, 0.f, 0.f); // positiive x should be more green
+//	}
 
 	vec4 pt_film = vec4(x, y, 0.f, 1.f);
 	vec4 pt_world = M_film2World*pt_film;
 
-	vec4 d = normalize(pt_world - eye);
-	vec4 P = eye;
+//	vec4 d = normalize(pt_world - eye);
+	vec4 d = vec4(0.f, 0.f, -1.f, 0.f);
+	vec4 P = vec4(x, y, 0.f, 1.f);
+
+	vec4 sphereCenter = vec4(0.f, 1.2f, 0.f, 1.f);
+	float R = 1.f;
+
+	float A = pow(d.x, 2.f) + pow(d.y, 2.f) + pow(d.z, 2.f);
+	float B = 2.f*(P.x*d.x + P.y*d.y + P.z*d.z);
+	float C = pow(P.x, 2.f) + pow(P.y, 2.f) + pow(P.z, 2.f) - 0.25;
+
+	float det = B*B - 4*A*C;
+	if (det >= 0.f) {
+		fragColor = vec4(0.2f, 0.3f, 0.5f, 1.f);
+	} else {
+		fragColor = vec4(0.f, 0.f, 0.f, 0.f);
+	}
 
 	// TODO: restore
-	Ray ray;
-	ray.P = P;
-	ray.d = d;
-	fragColor = traceRay(ray, depth);
-//	fragColor = vec4(1.f, 0.f, 0.f, 1.f);
-	
-//	if (int(gl_FragCoord.x) > 25) {
+//	Ray ray;
+//	ray.P = P;
+//	ray.d = d;
+
+//	if (x*x + y*y < 0.5f) {
 //		fragColor = vec4(1.f, 0.f, 0.f, 1.f);
-//	} else {
+//	} else { 
 //		fragColor = vec4(0.f, 1.f, 0.f, 1.f);
 //	}
 
-	// pixel = vec4(1.f, 0.f, 0.f, 1.f);
+//	fragColor = traceRay(ray, depth);
 
-	// // TODO: remove debugging line: should make everything red if works
-	// pixel = vec4(1.f, 0.f, 0.f, 1.f);
+//	if (ray.d.z >= 0.f) {
+//		fragColor = vec4(1.f, 0.f, 0.f, 1.f);
+//	}
 }

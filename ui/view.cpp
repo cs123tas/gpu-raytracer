@@ -41,48 +41,6 @@ View::~View()
 {
 }
 
-// TODO: not sure if useful for final product, part of benchmarking
-static void checkAvailableWorkers() {
-    /*
-     * This checks how many workers are
-     * available for the task, changes between machines
-     * Dan: max global (total) work group counts x:65535 y:65535 z:65535
-     * max local (in one shader) work group sizes x:1024 y:1024 z:64
-     */
-    int numWorkGroups[3];
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &numWorkGroups[0]);
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &numWorkGroups[1]);
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &numWorkGroups[2]);
-
-    printf("max global (total) work group counts x:%i y:%i z:%i\n",
-      numWorkGroups[0], numWorkGroups[1], numWorkGroups[2]);
-
-    int sizeWorkGroups[3];
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &sizeWorkGroups[0]);
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &sizeWorkGroups[1]);
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &sizeWorkGroups[2]);
-
-    printf("max local (in one shader) work group sizes x:%i y:%i z:%i\n",
-      sizeWorkGroups[0], sizeWorkGroups[1], sizeWorkGroups[2]);
-}
-
-// TODO: change if we want camera effects
-void View::rebuildMatrices() {
-    m_view = glm::translate(glm::vec3(0, 0, -m_zoom)) *
-             glm::rotate(m_angleY, glm::vec3(1,0,0)) *
-             glm::rotate(m_angleX, glm::vec3(0,1,0));
-
-    m_projection = glm::perspective(0.8f, (float)width()/height(), 0.1f, 100.f);
-    m_scale = glm::mat4({
-                           m_width, 0.f, 0.f, 0.f,
-                             0.f, m_height, 0.f, 0.f,
-                            0.f, 0.f, 100.f, 0.f,
-                            0.f, 0.f, 0.f, 1.f
-                        });
-    update();
-}
-
-
 void View::initializeGL() {
     // All OpenGL initialization *MUST* be done during or after this
     // method. Before this method is called, there is no active OpenGL
@@ -109,17 +67,15 @@ void View::initializeGL() {
 
     // Loading in our ray tracer!
     std::string rayTracerSource = ResourceLoader::loadResourceFileToString(":/shaders/rayTracer.comp");
-    m_rayTracerProgram = std::make_unique<Shader>(rayTracerSource);
+    m_rayTracerCompProgram = std::make_unique<Shader>(rayTracerSource);
 
-    bool isBenchMarkingWorkers = false;
-    if (isBenchMarkingWorkers) {
-        checkAvailableWorkers(); //see above
-    }
-
-    // Full screen quad ray tracer
+    // Full screen quad
     std::string quadVertexSource = ResourceLoader::loadResourceFileToString(":/shaders/quad.vert");
-    std::string quadFragmentSource = ResourceLoader::loadResourceFileToString(":/shaders/rayTracer.frag");
+    std::string quadFragmentSource = ResourceLoader::loadResourceFileToString(":/shaders/quad.frag");
     m_textureProgram = std::make_unique<Shader>(quadVertexSource, quadFragmentSource);
+
+    std::string rayTracerFragmentSource = ResourceLoader::loadResourceFileToString(":/shaders/rayTracer.frag");
+    m_rayTracerFragProgram = std::make_unique<Shader>(quadVertexSource, rayTracerFragmentSource);
 
     std::vector<GLfloat> quadData{
         -1.f, 1.f, 0.0,
@@ -146,7 +102,7 @@ void View::initializeGL() {
         std::cout << "Max FBO size: " << maxRenderBufferSize << std::endl;
     }
 
-    // TODO: abstract this in A framebuffer, remove instance m_renderOut
+    // TODO: abstract this in a framebuffer, remove instance m_renderOut, I hate looking at this
     glGenTextures(1, &m_renderOut);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_renderOut);
@@ -161,47 +117,110 @@ void View::initializeGL() {
 }
 
 void View::paintGL() {
-       // TODO: compute shaders;
-//    { // ray tracer program block
-//        m_rayTracerProgram->bind();
-//        glm::mat4 M_film2World = glm::inverse(m_view); // TODO: scale matrix
-//        glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
+    if (false) {
+        paintWithFragmentShaders();
+    } else {
+        paintWithComputeShaders();
+    }
+}
 
-//        m_rayTracerProgram->setUniform("M_film2World", M_film2World);
-//        m_rayTracerProgram->setUniform("eye", eye);
-//        m_rayTracerProgram->setUniform("height", m_height);
-//        m_rayTracerProgram->setUniform("width", m_width);
-//        m_rayTracerProgram->setUniform("time", m_time.second());
+void View::paintWithFragmentShaders() {
+    // m_fbo->bind();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    m_rayTracerFragProgram->bind();
+    // TODO: Implement the demo rendering here
+    glm::mat4 M_film2World = glm::inverse(m_scale*m_view);
+    glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
 
-//        // abstract out? unique to compute shader which is why I think not
-//        glDispatchCompute(static_cast<GLuint>(512), static_cast<GLuint>(512), 1); // 512 by 512 pixels
-//    }
+    m_rayTracerFragProgram->setUniform("M_film2World", M_film2World);
+    m_rayTracerFragProgram->setUniform("eye", eye);
+    m_rayTracerFragProgram->setUniform("height", m_height);
+    m_rayTracerFragProgram->setUniform("width", m_width);
+    m_rayTracerFragProgram->setUniform("time", m_time.second());
+    m_rayTracerFragProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
+    m_rayTracerFragProgram->setUniform("depth", 1);
 
-     // glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); // lock writing until ready to read
+    glActiveTexture(GL_TEXTURE0); // TODO: is this abstracted?
+    glBindTexture(GL_TEXTURE_2D, m_renderOut);
+    m_quad->draw();
+    m_rayTracerFragProgram->unbind();
+    // m_fbo->unbind();
+}
 
-    {  // traditional rendering block
-//        m_fbo->bind();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        m_textureProgram->bind();
-        // TODO: Implement the demo rendering here
-        glm::mat4 M_film2World = glm::inverse(m_scale*m_view);
+// TODO: it would be nice to optimize this based on a user's particular hardware
+static void checkAvailableWorkers() {
+    /*
+     * This checks how many workers are
+     * available for the task, changes between machines
+     * Dan: max global (total) work group counts x:65535 y:65535 z:65535
+     * max local (in one shader) work group sizes x:1024 y:1024 z:64
+     */
+    std::vector<int> numWorkGroups = std::vector<int>(3);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &numWorkGroups[0]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &numWorkGroups[1]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &numWorkGroups[2]);
+
+    std::cout << "I have " << numWorkGroups[0] << " by " << numWorkGroups[1] << " by " << numWorkGroups[2] << " workers" << std::endl;
+
+    std::vector<int> sizeWorkGroups = std::vector<int>(3);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &sizeWorkGroups[0]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &sizeWorkGroups[1]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &sizeWorkGroups[2]);
+
+    std::cout << ", each with a max workload of " << sizeWorkGroups[0] << " by " << sizeWorkGroups[1] << " by " << sizeWorkGroups[2] << std::endl;
+}
+
+void View::paintWithComputeShaders(){
+    bool isBenchMarkingWorkers = false;
+    if (isBenchMarkingWorkers) {
+        checkAvailableWorkers(); //see above
+    }
+
+    // TODO: compute shaders;
+    { // ray tracer program block
+        m_rayTracerCompProgram->bind();
+        glm::mat4 M_film2World = glm::inverse(m_view); // TODO: scale matrix
         glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
 
-        m_textureProgram->setUniform("M_film2World", M_film2World);
-        m_textureProgram->setUniform("eye", eye);
-        m_textureProgram->setUniform("height", m_height);
-        m_textureProgram->setUniform("width", m_width);
-        m_textureProgram->setUniform("time", m_time.second());
-        m_textureProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
-        m_textureProgram->setUniform("depth", 1);
+        m_rayTracerCompProgram->setUniform("M_film2World", M_film2World);
+        m_rayTracerCompProgram->setUniform("eye", eye);
+        m_rayTracerCompProgram->setUniform("height", m_height);
+        m_rayTracerCompProgram->setUniform("width", m_width);
+        m_rayTracerCompProgram->setUniform("time", m_time.second());
+        m_rayTracerFragProgram->setUniform("depth", 1);
 
-        glActiveTexture(GL_TEXTURE0); // TODO: is this abstracted?
+        glDispatchCompute(static_cast<GLuint>(std::min(m_width, 1000)),
+                          static_cast<GLuint>(std::min(m_height, 1000)),
+                          1); // canvas-sized number of jobs, each operating at pixel level
+    }
+
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); // lock writing until ready to read
+
+    { // traditional rendering block
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        m_textureProgram->bind();
+
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_renderOut);
         m_quad->draw();
         m_textureProgram->unbind();
-        // m_fbo->unbind();
     }
+}
 
+// TODO: change if we want camera effects
+void View::rebuildMatrices() {
+    m_view = glm::translate(glm::vec3(0, 0, -m_zoom)) *
+             glm::rotate(m_angleY, glm::vec3(1,0,0)) *
+             glm::rotate(m_angleX, glm::vec3(0,1,0));
+
+    m_projection = glm::perspective(0.8f, (float)width()/height(), 0.1f, 100.f);
+    m_scale = glm::mat4({
+                           m_width, 0.f, 0.f, 0.f,
+                             0.f, m_height, 0.f, 0.f,
+                            0.f, 0.f, 100.f, 0.f,
+                            0.f, 0.f, 0.f, 1.f
+                        });
+    update();
 }
 
 

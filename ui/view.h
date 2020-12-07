@@ -16,8 +16,7 @@
 #include "../lib/OpenGLShape.h"
 #include "../gl/datatype/FBO.h"
 
-using namespace CS123;
-using namespace GL;
+using namespace CS123::GL;
 
 
 class View : public QGLWidget {
@@ -36,17 +35,27 @@ private:
 
     GLuint m_renderOut; //TODO: remove and abstract into texture class
 
-    std::unique_ptr<Shader> m_rayTracerProgram;
-
-    std::unique_ptr<Shader> m_textureProgram;
+    std::unique_ptr<Shader> m_rayTracerCompProgram; // gpgpu
+    std::unique_ptr<Shader> m_textureProgram; // fullscreen quad
+    std::unique_ptr<Shader> m_rayTracerFragProgram; // glsl raytracer
     std::unique_ptr<OpenGLShape> m_quad;
     std::unique_ptr<FBO> m_fbo; // TODO: I don't know if we need it, my intuition says so
 
-    glm::mat4 m_view, m_projection, m_scale;
-    float m_angleX, m_angleY, m_zoom;
+    glm::mat4 m_view;
+    glm::mat4 m_projection;
+    glm::mat4 m_scale;
+
+    float m_angleX;
+    float m_angleY;
+    float m_zoom;
+
+    void paintWithComputeShaders();
+    void paintWithFragmentShaders();
 
     void rebuildMatrices();
 
+
+    // Inheritted from QWidget
     void initializeGL();
     void paintGL();
     void resizeGL(int w, int h);
