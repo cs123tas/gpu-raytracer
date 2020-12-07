@@ -12,6 +12,10 @@ layout(rgba32f, binding = 0) uniform image2D renderOut;
 //uniform int height;
 //uniform float time;
 
+#define PLANAR     0
+#define SPHERICAL  1
+
+
 
 struct Ray {
 	vec4 P; 

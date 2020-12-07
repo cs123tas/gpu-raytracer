@@ -42,7 +42,7 @@ private:
     std::unique_ptr<OpenGLShape> m_quad;
     std::unique_ptr<FBO> m_fbo; // TODO: I don't know if we need it, my intuition says so
 
-    glm::mat4 m_view, m_projection;
+    glm::mat4 m_view, m_projection, m_scale;
     float m_angleX, m_angleY, m_zoom;
 
     void rebuildMatrices();

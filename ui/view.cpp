@@ -16,8 +16,8 @@ View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
     m_time(),
     m_timer(),
     m_captureMouse(false),
-    m_height(std::min(1000,height())),
-    m_width(std::min(1000,width())),
+    m_height(height()),
+    m_width(width()),
     m_angleX(-0.5f),
     m_angleY(0.5f),
     m_zoom(4.f)
@@ -66,12 +66,19 @@ static void checkAvailableWorkers() {
       sizeWorkGroups[0], sizeWorkGroups[1], sizeWorkGroups[2]);
 }
 
+// TODO: change if we want camera effects
 void View::rebuildMatrices() {
     m_view = glm::translate(glm::vec3(0, 0, -m_zoom)) *
              glm::rotate(m_angleY, glm::vec3(1,0,0)) *
              glm::rotate(m_angleX, glm::vec3(0,1,0));
 
     m_projection = glm::perspective(0.8f, (float)width()/height(), 0.1f, 100.f);
+    m_scale = glm::mat4({
+                           m_width, 0.f, 0.f, 0.f,
+                             0.f, m_height, 0.f, 0.f,
+                            0.f, 0.f, 100.f, 0.f,
+                            0.f, 0.f, 0.f, 1.f
+                        });
     update();
 }
 
@@ -109,9 +116,9 @@ void View::initializeGL() {
         checkAvailableWorkers(); //see above
     }
 
-    // Full screen quad
+    // Full screen quad ray tracer
     std::string quadVertexSource = ResourceLoader::loadResourceFileToString(":/shaders/quad.vert");
-    std::string quadFragmentSource = ResourceLoader::loadResourceFileToString(":/shaders/quad.frag");
+    std::string quadFragmentSource = ResourceLoader::loadResourceFileToString(":/shaders/rayTracer.frag");
     m_textureProgram = std::make_unique<Shader>(quadVertexSource, quadFragmentSource);
 
     std::vector<GLfloat> quadData{
@@ -139,24 +146,26 @@ void View::initializeGL() {
         std::cout << "Max FBO size: " << maxRenderBufferSize << std::endl;
     }
 
-    // TODO: abstract this in the texure class, remove instance m_renderOut
+    // TODO: abstract this in A framebuffer, remove instance m_renderOut
     glGenTextures(1, &m_renderOut);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_renderOut);
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 512, 512, 0, GL_RGBA, GL_FLOAT, NULL);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_width, m_height, 0, GL_RGBA, GL_FLOAT, 0);
     glBindImageTexture(0, m_renderOut, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 }
 
 void View::paintGL() {
-
-    { // ray tracer program block
-        m_rayTracerProgram->bind();
-        glm::mat4 M_film2World = glm::inverse(m_view); // TODO: scale matrix
-        glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
+       // TODO: compute shaders;
+//    { // ray tracer program block
+//        m_rayTracerProgram->bind();
+//        glm::mat4 M_film2World = glm::inverse(m_view); // TODO: scale matrix
+//        glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
 
 //        m_rayTracerProgram->setUniform("M_film2World", M_film2World);
 //        m_rayTracerProgram->setUniform("eye", eye);
@@ -164,21 +173,35 @@ void View::paintGL() {
 //        m_rayTracerProgram->setUniform("width", m_width);
 //        m_rayTracerProgram->setUniform("time", m_time.second());
 
-        // abstract out? unique to compute shader which is why I think not
-        glDispatchCompute(static_cast<GLuint>(512), static_cast<GLuint>(512), 1); // 512 by 512 pixels
-    }
+//        // abstract out? unique to compute shader which is why I think not
+//        glDispatchCompute(static_cast<GLuint>(512), static_cast<GLuint>(512), 1); // 512 by 512 pixels
+//    }
 
-     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); // lock writing until ready to read
+     // glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); // lock writing until ready to read
 
     {  // traditional rendering block
+//        m_fbo->bind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         m_textureProgram->bind();
         // TODO: Implement the demo rendering here
+        glm::mat4 M_film2World = glm::inverse(m_scale*m_view);
+        glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
+
+        m_textureProgram->setUniform("M_film2World", M_film2World);
+        m_textureProgram->setUniform("eye", eye);
+        m_textureProgram->setUniform("height", m_height);
+        m_textureProgram->setUniform("width", m_width);
+        m_textureProgram->setUniform("time", m_time.second());
+        m_textureProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
+        m_textureProgram->setUniform("depth", 1);
 
         glActiveTexture(GL_TEXTURE0); // TODO: is this abstracted?
         glBindTexture(GL_TEXTURE_2D, m_renderOut);
         m_quad->draw();
+        m_textureProgram->unbind();
+        // m_fbo->unbind();
     }
+
 }
 
 
@@ -187,9 +210,9 @@ void View::resizeGL(int w, int h) {
     w = static_cast<int>(w / ratio);
     h = static_cast<int>(h / ratio);
 
-    m_width = std::min(w, 1000);
-    m_height = std::min(h, 1000);
-    glViewport(0, 0, w, h); // TODO: restore, keep it here for compute concerns
+    m_width = w;
+    m_height = h;
+    glViewport(0, 0, w, h);
 
     m_fbo = std::make_unique<FBO>(1, FBO::DEPTH_STENCIL_ATTACHMENT::NONE, m_width, m_height, TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE);
 }
@@ -230,6 +253,7 @@ void View::keyReleaseEvent(QKeyEvent *event) {
 
 }
 
+// TODO: I don't know why time isn't being sent to fragment
 void View::tick() {
     // Get the number of seconds since the last tick (variable update rate)
     float seconds = m_time.restart() * 0.001f;

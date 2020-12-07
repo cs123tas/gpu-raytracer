@@ -1,3 +1,4 @@
 .DS_Store
 final.pro.user
-.vs/gpu-raytracer/v16/Browse.VC.opendb"
+.vs/gpu-raytracer/v16/Browse.VC.opendb
+*.o

@@ -105,4 +105,5 @@ DISTFILES += \
     shaders/normals/normalsArrow.vert \
     shaders/quad.frag \
     shaders/quad.vert \
-    shaders/rayTracer.comp
+    shaders/rayTracer.comp \
+    shaders/rayTracer.frag
