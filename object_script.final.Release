@@ -1,4 +1,6 @@
 release/mainwindow.o
+release/CamtransCamera.o
+release/OrbitingCamera.o
 release/GLDebug.o
 release/FBO.o
 release/VAO.o
@@ -16,6 +18,7 @@ release/ResourceLoader.o
 release/main.o
 release/glew.o
 release/Databinding.o
+release/Settings.o
 release/view.o
 release/viewformat.o
 release/qrc_resources.o

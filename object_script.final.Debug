@@ -1,4 +1,6 @@
 debug/mainwindow.o
+debug/CamtransCamera.o
+debug/OrbitingCamera.o
 debug/GLDebug.o
 debug/FBO.o
 debug/VAO.o
@@ -16,6 +18,7 @@ debug/ResourceLoader.o
 debug/main.o
 debug/glew.o
 debug/Databinding.o
+debug/Settings.o
 debug/view.o
 debug/viewformat.o
 debug/qrc_resources.o

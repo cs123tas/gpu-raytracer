@@ -28,8 +28,7 @@ void Settings::loadSettingsOrDefaults() {
     QSettings s("CS123", "CS123");
 
 
-
-    // Camtrans
+   // Camtrans
     useOrbitCamera = s.value("useOrbitCamera", true).toBool();
     cameraFov = s.value("cameraFov", 55).toDouble();
     cameraNear = s.value("cameraNear", 0.1).toDouble();
@@ -62,10 +61,7 @@ void Settings::saveSettings() {
 }
 
 int Settings::getSceneMode() {
-    if (this->useSceneviewScene)
-        return SCENEMODE_SCENEVIEW;
-    else
-        return SCENEMODE_SHAPES;
+    return 0;
 }
 
 int Settings::getCameraMode() {

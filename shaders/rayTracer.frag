@@ -60,8 +60,7 @@ struct Material {
 };
 
 struct Sphere {
-	float radius;
-	vec4 center;
+	mat4 transformation;
 
 	Material mat;
 };
@@ -120,11 +119,33 @@ Material forest = Material(
 							vec4(1.f, 1.f, 0.9f, 1.f), 
 							vec4(0)
 							);
+// TODO: animate here? Hard coded translation scale 
+mat4 leftSphereTransformation = mat4(
+									0.5f, 0.f, 0.f, -5.f,
+									0.f, 0.5f, 0.f, 0.f,
+									0.f, 0.f, 0.5f, -2.f,
+									0.f, 0.f, 0.f, 1.f
+									);
 
+mat4 rightSphereTransformation = mat4(
+										2.f, 0.f, 0.f, 6.f,
+										0.f, 2.f, 0.f, 0.f,
+										0.f, 0.f, 2.f, -3.f,
+										0.f, 0.f, 0.f, 1.f
+									);
+
+mat4 centerSphereTransformation = mat4(1.f);
+
+
+Sphere leftSphere = Sphere(leftSphereTransformation, salmon);
+Sphere rightSphere = Sphere(rightSphereTransformation, forest);
+Sphere centerSphere = Sphere(mat4(1.f), eggShell);
+
+// TODO: restore
 Sphere sceneSpheres[] = Sphere[](
-								Sphere(0.25f, vec4(0.f, 0.f, 0.f, 1.f), eggShell),
-								Sphere(0.1f, vec4(-0.5f, 0.f, -1.f, 1.f), salmon),
-								Sphere(0.5f, vec4(1.f, 0.f, -1.f, 1.f), forest)
+								centerSphere,
+								rightSphere,
+								leftSphere
 								);
 
 /*
@@ -189,7 +210,8 @@ HitData sphereRayIntersect(inout Sphere sphere, inout Ray ray) {
 	vec4 P = ray.P;
 	vec4 d = ray.d;
 
-	float R = sphere.radius;
+	float R = 0.5f;
+
 	float A = pow(d.x, 2.f) + pow(d.y, 2.f) + pow(d.z, 2.f);
 	float B = 2.f*(P.x*d.x + P.y*d.y + P.z*d.z);
 	float C = pow(P.x, 2.f) + pow(P.y, 2.f) + pow(P.z, 2.f) - R*R;
@@ -212,46 +234,50 @@ HitData sphereRayIntersect(inout Sphere sphere, inout Ray ray) {
 
 // TODO: how to represent the scene, I'm thinking hardcoded SDF like lab 10
 HitData intersect(inout Ray ray) {
-	
+	// TODO: restore
+	HitData data; // blank data
+	data.tVals = vec2(MAX_VAL, MAX_VAL);
+	data.normal = vec4(0.f, 0.f, 0.f, 0.f);
+	vec4 darkness = vec4(0.f, 0.f, 0.f, 0.f);
+	data.mat = Material(darkness, darkness, darkness, darkness);
+
 	float t = MAX_VAL;
 
-
-	// TODO: remove, simple sphere ray intersect test
-	Sphere egg = sceneSpheres[0];
-	HitData data = sphereRayIntersect(egg, ray);
-
-	float t_prime = data.tVals.x;
-
-	if (t_prime < MAX_VAL) {
-		t = t_prime;
-		data.isIntersect = true;
-		return data;
-	}
-
-	// TODO: restore
-//	HitData data;
+//	// TODO: remove, simple sphere ray intersect test
+//	Sphere egg = sceneSpheres[0];
+//	HitData retrieved = sphereRayIntersect(egg, ray);
+//
+//	float t_prime = retrieved.tVals.x;
+//
+//	if (t_prime < MAX_VAL) {
+//		t = t_prime;
+//		retrieved.isIntersect = true;
+//		data = retrieved;
+//	}
+//
+//	return data;
+//
 //
 //	float t = MAX_VAL;
-//	for (int i = 0; i < 3; i++){
-//		// TODO: remove, simple sphere ray intersect test
-//		Sphere sphere = sceneSpheres[i];
-//		HitData retrieved = sphereRayIntersect(sphere, ray);
-//
-//		float t_prime = data.tVals.x;
-//
-//		if (t_prime < t) {
-//			t = t_prime;
-//			if (data.isIntersect) {
-//				data.isIntersect = true;
-//			}
-//			data.mat = retrieved.mat;
-//			data.tVals = retrieved.tVals;
-//			data.normal = retrieved.normal;
-//		} else {
-//			continue;
-//		}
-//	}
+	for (int i = 0; i < 3; i++){ // for each primitive in scene
+		// TODO: remove, simple sphere ray intersect test
+		Sphere sphere = sceneSpheres[i];
+		mat4 modelMatrix = sphere.transformation;
+		Ray rayInObjectSpace = Ray(
+									inverse(modelMatrix)*vec4(ray.P.xyz, 1.f), 
+									inverse(modelMatrix)*vec4(ray.d.xyz, 0.f)
+									);
 
+		HitData retrieved = sphereRayIntersect(sphere, rayInObjectSpace);
+
+		float t_prime = retrieved.tVals.x; // first 
+
+		if (t_prime < t) {
+			t = t_prime;
+			retrieved.isIntersect = true;
+			data = retrieved;
+		}
+	}
 
 	return data;
 }
