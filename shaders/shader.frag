@@ -1,4 +1,4 @@
-#version 430 core
+#version 410 core
 
 in vec3 WorldSpace_position; // world-space position
 in vec3 WorldSpace_normal;   // world-space normal
