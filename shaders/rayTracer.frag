@@ -1,4 +1,4 @@
-#version 430 core
+#version 410 core
 #define MAX_VAL  10000.0
 #define PI 3.1415926535897932384626433832795
 #define PLANE   0
