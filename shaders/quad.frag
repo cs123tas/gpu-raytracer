@@ -1,5 +1,6 @@
 #version 410 core
 in vec2 texCoord;
+in vec4 position;
 uniform sampler2D tex;
 out vec4 fragColor;
 

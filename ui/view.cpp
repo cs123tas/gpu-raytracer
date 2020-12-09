@@ -132,13 +132,13 @@ void View::paintWithFragmentShaders() {
     glm::mat4 M_film2World = glm::inverse(m_scale*m_view);
     glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
 
-    m_rayTracerFragProgram->setUniform("M_film2World", M_film2World);
-    m_rayTracerFragProgram->setUniform("eye", eye);
+//    m_rayTracerFragProgram->setUniform("M_film2World", M_film2World);
+//    m_rayTracerFragProgram->setUniform("eye", eye);
     m_rayTracerFragProgram->setUniform("height", m_height);
     m_rayTracerFragProgram->setUniform("width", m_width);
     m_rayTracerFragProgram->setUniform("time", m_time.second());
     m_rayTracerFragProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
-    m_rayTracerFragProgram->setUniform("depth", 1);
+//    m_rayTracerFragProgram->setUniform("depth", 1);
 
     glActiveTexture(GL_TEXTURE0); // TODO: is this abstracted?
     glBindTexture(GL_TEXTURE_2D, m_renderOut);
