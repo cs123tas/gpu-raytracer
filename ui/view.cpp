@@ -22,9 +22,10 @@ View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
     m_angleY(0.5f),
     m_zoom(4.f),
     m_leftSpeed(0.1f),
-    m_centerSpeed(1.f),
+    m_centerSpeed(0.02f),
     m_rightSpeed(0.01),
-    m_sleepTime(100)
+    m_sleepTime(100),
+    m_depth(1)
 {
     // View needs all mouse move events, not just mouse drag events
     setMouseTracking(true);
@@ -140,10 +141,15 @@ void View::paintGL() {
 void View::paintWithFragmentShaders() {
     //m_fbo->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
     m_rayTracerFragProgram->bind();
     m_rayTracerFragProgram->setUniform("time", static_cast<float>(m_time.msec()/1000.f));
     m_rayTracerFragProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
-
+    m_rayTracerFragProgram->setUniform("depth", m_depth);
+    m_rayTracerFragProgram->setUniform("rightSpeed", m_rightSpeed);
+    m_rayTracerFragProgram->setUniform("leftSpeed", m_leftSpeed);
+    m_rayTracerFragProgram->setUniform("centerSpeed", m_centerSpeed);
     glActiveTexture(GL_TEXTURE0); // TODO: restore after figuring out the fbo issues
     glBindTexture(GL_TEXTURE_2D, m_renderOut);
     //m_fbo->getColorAttachment(0).bind();
@@ -293,6 +299,6 @@ void View::tick() {
     // TODO: Implement the demo update here
 
     // Flag this view for repainting (Qt will call paintGL() soon after)
-    Sleep(m_sleepTime); // TODO: remove for non-Windows
-    update();
+//    Sleep(m_sleepTime); // TODO: remove for non-Windows
+//    update();
 }

@@ -59,6 +59,7 @@ private:
     float m_centerSpeed;
     float m_rightSpeed;
     int m_sleepTime;
+    int m_depth;
 
     // Inheritted from QWidget
     void initializeGL();
