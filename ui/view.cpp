@@ -16,8 +16,8 @@ View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
     m_time(),
     m_timer(),
     m_captureMouse(false),
-    m_height(height()),
-    m_width(width()),
+    m_height(std::min(1000, height())),
+    m_width(std::min(1000, width())),
     m_angleX(-0.5f),
     m_angleY(0.5f),
     m_zoom(4.f)
@@ -112,7 +112,7 @@ void View::initializeGL() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, std::min(512, m_width), std::min(m_height, 512), 0, GL_RGBA, GL_FLOAT, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, std::min(1000, m_width), std::min(m_height, 1000), 0, GL_RGBA, GL_FLOAT, 0);
 
 //    m_fbo = std::make_unique<FBO>(1,
 //                                  FBO::DEPTH_STENCIL_ATTACHMENT::NONE,
@@ -125,7 +125,7 @@ void View::initializeGL() {
 }
 
 void View::paintGL() {
-    if (true) {
+    if (true) { // TODO: comp shaders
         paintWithFragmentShaders();
     } else {
         paintWithComputeShaders();
@@ -138,11 +138,9 @@ void View::paintWithFragmentShaders() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     m_rayTracerFragProgram->bind();
     m_rayTracerFragProgram->setUniform("time", static_cast<float>(m_time.msec()/1000.f));
-
-
     m_rayTracerFragProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
 
-    glActiveTexture(GL_TEXTURE0); // TODO: is this abstracted?
+    glActiveTexture(GL_TEXTURE0); // TODO: restore after figuring out the fbo issues
     glBindTexture(GL_TEXTURE_2D, m_renderOut);
     //m_fbo->getColorAttachment(0).bind();
     m_quad->draw();
@@ -183,25 +181,29 @@ void View::paintWithComputeShaders(){
     // TODO: compute shaders;
     { // ray tracer program block
         m_rayTracerCompProgram->bind();
-        glm::mat4 M_film2World = glm::inverse(m_scale*m_view); // TODO: scale matrix
-        glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
+        m_rayTracerCompProgram->setUniform("time", static_cast<float>(m_time.msec()/1000.f));
+
+        m_rayTracerCompProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
 
 
         glDispatchCompute(static_cast<GLuint>(std::min(m_width, 1000)),
                           static_cast<GLuint>(std::min(m_height, 1000)),
                           1); // canvas-sized number of jobs, each operating at pixel level
+        m_rayTracerCompProgram->unbind();
     }
 
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); // lock writing until ready to read
 
     { // traditional rendering block
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        m_textureProgram->bind();
 
-        glActiveTexture(GL_TEXTURE0);
+
+        glActiveTexture(GL_TEXTURE0); // TODO: restore after figuring out the fbo issues
         glBindTexture(GL_TEXTURE_2D, m_renderOut);
+        //m_fbo->getColorAttachment(0).bind();
         m_quad->draw();
-        m_textureProgram->unbind();
+        // m_fbo->unbind();
+        glBindImageTexture(0, m_renderOut, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
     }
 }
 
@@ -227,8 +229,8 @@ void View::resizeGL(int w, int h) {
     w = static_cast<int>(w / ratio);
     h = static_cast<int>(h / ratio);
 
-    m_width = std::min(w, 512);
-    m_height = std::min(h, 512);
+    m_width = std::min(w, 1000);
+    m_height = std::min(h, 1000);
     glViewport(0, 0, m_width, m_height);
 
     m_fbo = std::make_unique<FBO>(1,
@@ -284,13 +286,8 @@ void View::tick() {
     float seconds = m_time.restart() * 0.001f;
 
     // TODO: Implement the demo update here
-//    glGenTextures(1, &m_renderOut);
 
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, std::min(512, m_width), std::min(m_height, 512), 0, GL_RGBA, GL_FLOAT, 0);
     // Flag this view for repainting (Qt will call paintGL() soon after)
+    Sleep(20); // TODO: remove for non-Windows
     update();
 }

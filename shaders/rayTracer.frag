@@ -16,14 +16,10 @@ in vec4 position;
 *	Uniforms from C++
 */
 uniform sampler2D tex;
-//uniform mat4 M_film2World;
+uniform mat4 M_film2World;
 //uniform vec4 eye;
-uniform int depth; // TODO
-//uniform int width;
-//uniform int height;
 uniform float time;
 uniform vec2 dimensions;
-
 
 /*
 *	Out to frame buffer
@@ -89,8 +85,8 @@ struct Light {
 */
 Light sceneLighting[]  = Light[3](
 								Light( vec4(3.f, 3.f, 3.f, 1.f), vec4(1.f, 1.f, 1.f, 1.f) ),
-								Light( vec4(-1, 2.f, 4.f, 1.f), vec4(1.f, 1.f, 1.f, 1.f) ),
-								Light( vec4(0.f, 2.f, 1.f, 1.f), vec4(1.f, 1.f, 1.f, 1.f) )
+								Light( vec4(-2, 2.f, 2.f, 1.f), vec4(1.f, 1.f, 1.f, 1.f) ),
+								Light( vec4(-1.f, 2.f, 1.f, 1.f), vec4(1.f, 1.f, 1.f, 1.f) )
 								);
 
 // 3 spheres: 
@@ -126,7 +122,7 @@ Material oak = Material(
 float smallRadius = 0.25f;
 mat4 leftSphereTransformation = transpose(mat4(
 									smallRadius, 0.f, 0.f, -.5f,
-									0.f, smallRadius, 0.f, 0.f,
+									0.f, smallRadius, 0.f, sin(10.f*time),
 									0.f, 0.f, smallRadius, -1.f,
 									0.f, 0.f, 0.f, 1.f
 									));
@@ -134,7 +130,7 @@ mat4 leftSphereTransformation = transpose(mat4(
 float bigRadius = 1.25f;
 mat4 rightSphereTransformation = transpose(mat4(
 										bigRadius, 0.f, 0.f, 0.2f,
-										0.f, bigRadius, 0.f, 0.f,
+										0.f, bigRadius, 0.f, (1.f/bigRadius)*cos(100.f*time),
 										0.f, 0.f, bigRadius, -3.f,
 										0.f, 0.f, 0.f, 1.f
 									));
@@ -142,7 +138,7 @@ mat4 rightSphereTransformation = transpose(mat4(
 
 mat4 centerSphereTransformation = transpose(mat4(
 											1.f, 0.f, 0.f, 0.f,
-											0.f, 1.f, 0.f, 0.f,
+											0.f, 1.f, 0.f, -0.25f*sin(50.f*time),
 											0.f, 0.f, 1.f, 0.f,
 											0.f, 0.f, 0.f, 1.f
 										));
@@ -188,11 +184,11 @@ vec4 estimateDirectLight(inout Ray ray, inout HitData data) {
 		vec4 vertexToLight = lightPosition - vertex;
 
 		float cosTheta =  max(0.f, dot(normalize(normal), normalize(vertexToLight)));
-		vec4 diffuseComponent = data.mat.diffuseColor*cosTheta;
+		vec4 diffuseComponent = I*data.mat.diffuseColor*cosTheta;
 
 		vec4 reflected = -normalize(2.f*normal*(dot(normal, vertexToLight)) - vertexToLight);
 		float cosPhi = max(0.f, dot(reflected, ray.d));
-		vec4 specularComponent = data.mat.specularColor*pow(cosPhi, 1.f); // Add shininess to mat
+		vec4 specularComponent = I*data.mat.specularColor*pow(cosPhi, 1.f); // Add shininess to mat
 
 		radiance += diffuseComponent;
 
@@ -390,9 +386,11 @@ void main() {
 
 	Ray primaryRay = Ray(P, d, 1);
 
-	//fragColor += traceRay(primaryRay);
+	fragColor += traceRay(primaryRay);
 
+	// TODO: remove, debugging lines
 	// fragColor += vec4(time/1000.f, 1.f - time/1000.f, 0.f, 1.f);
-	//fragColor += d*0.5f + 0.5f;
-	fragColor += vec4(time, 0.f, 0.f, 1.f);
+	// fragColor += d*0.5f + 0.5f;
+	// fragColor += vec4(time, 0.f, 0.f, 1.f);
+	// fragColor = vec4(1.f, 0.f, 0.f, 1.f);
 }
