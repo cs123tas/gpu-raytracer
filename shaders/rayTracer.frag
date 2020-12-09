@@ -1,6 +1,6 @@
 #version 410 core
-#define MAX_VAL  10000.0
-#define MIN_VAL 0.00001
+#define MAX_VAL  1000.0
+#define MIN_VAL 0.001
 #define PI 3.1415926535897932384626433832795
 #define PLANE   0
 #define SPHERE  1
@@ -18,7 +18,7 @@ in vec4 position;
 uniform sampler2D tex;
 //uniform mat4 M_film2World;
 //uniform vec4 eye;
-uniform int depth;
+uniform int depth; // TODO
 //uniform int width;
 //uniform int height;
 uniform float time;
@@ -32,7 +32,7 @@ out vec4 fragColor;
 
 
 /*
-*	Structs for scene represention
+*	STRUCTS
 */
 struct Ray {
 	vec4 P; 
@@ -48,6 +48,8 @@ struct Material {
 	vec4 reflectedColor;
 	vec4 tranparencyColor;
 };
+
+
 
 struct Sphere {
 	mat4 transformation;
@@ -69,8 +71,9 @@ struct HitData {
 	vec4 normal;
 	Material mat;
 
-	int rayType[];
-	float tVals[];
+	int rayType[]; // 0 = Shadow, 1 = Primary Ray, 2 = Reflection, 3 = Refraction
+	float tVals[]; // corresponding lengths
+	Ray ray[]; //corresponding rays
 };
 
 
@@ -80,15 +83,14 @@ struct Light {
 };
 
 /*
-*	Scene representation
+*	SCENE REPRESENTATION
 *
-*	TODO: artistic vision
+*	TODO: artistic visionI
 */
-// Three point lighting: key light: (2, 2, 2), brightest | fill light (-1, 0, 1) | backlight (0, 3, -2)
 Light sceneLighting[]  = Light[](
-								Light( vec4(2.f, 2.f, 2.f, 1.f), vec4(1.f, 1.f, 1.f, 1.f) ),
-								Light( vec4(-1.f, 0.f, 1.f, 1.f), vec4(1.f, 1.f, 1.f, 0.5f) ),
-								Light( vec4(0.f, 3.f, -2.f, 1.f), vec4(0.2f, 0.2f, 0.6f, 0.2f) )
+								Light( vec4(3.f, 3.f, 3.f, 1.f), vec4(1.f, 1.f, 1.f, 1.f) ),
+								Light( vec4(-1, 2.f, 4.f, 1.f), vec4(1.f, 1.f, 1.f, 1.f) ),
+								Light( vec4(0.f, 2.f, 1.f, 1.f), vec4(1.f, 1.f, 1.f, 1.f) )
 								);
 
 // 3 spheres: 
@@ -101,38 +103,54 @@ Material eggShell = Material(
 Material salmon = Material(
 							vec4(250.f, 128.f, 114.f, 255.f)/255.f, 
 							vec4(1.f, 1.f, 1.f, 1.f), 
-							vec4(1.f, 1.f, 0.9f, 1.f), 
+							vec4(1.f, 1.f, 1.f, 1.f), 
 							vec4(0)
 							);
 
 Material forest = Material(
 							vec4(34.f, 139.f, 34.f, 255.f)/255.f, 
 							vec4(1.f, 1.f, 1.f, 1.f), 
-							vec4(1.f, 1.f, 0.9f, 1.f), 
+							vec4(1.f, 1.f, 1.f, 1.f), 
 							vec4(0)
 							);
+
+Material oak = Material(
+						vec4(120.f, 81.f, 45.f, 255.f)/255.f, 
+						vec4(1.f, 1.f, 1.f, 1.f), 
+						vec4(1.f, 1.f, 0.9f, 1.f), 
+						vec4(0)
+						);
+
+
 // TODO: animate here? Hard coded translation scale 
+float smallRadius = 0.25f;
 mat4 leftSphereTransformation = transpose(mat4(
-									0.25f, 0.f, 0.f, 1.f,
-									0.f, 0.25f, 0.f, 0.f,
-									0.f, 0.f, 0.25f, -1.f,
+									smallRadius, 0.f, 0.f, -.5f,
+									0.f, smallRadius, 0.f, 0.f,
+									0.f, 0.f, smallRadius, -1.f,
 									0.f, 0.f, 0.f, 1.f
 									));
 
+float bigRadius = 1.25f;
 mat4 rightSphereTransformation = transpose(mat4(
-										1.25f, 0.f, 0.f, 0.5f,
-										0.f, 1.25f, 0.f, 0.f,
-										0.f, 0.f, 1.25f, -1.f,
+										bigRadius, 0.f, 0.f, 0.2f,
+										0.f, bigRadius, 0.f, 0.f,
+										0.f, 0.f, bigRadius, -3.f,
 										0.f, 0.f, 0.f, 1.f
 									));
 
 
-mat4 centerSphereTransformation = mat4(1.f);
+mat4 centerSphereTransformation = transpose(mat4(
+											1.f, 0.f, 0.f, 0.f,
+											0.f, 1.f, 0.f, 0.f,
+											0.f, 0.f, 1.f, 0.f,
+											0.f, 0.f, 0.f, 1.f
+										));
 
 
 Sphere leftSphere = Sphere(leftSphereTransformation, salmon);
 Sphere rightSphere = Sphere(rightSphereTransformation, forest);
-Sphere centerSphere = Sphere(mat4(1.f), eggShell);
+Sphere centerSphere = Sphere(centerSphereTransformation, eggShell);
 
 Sphere sceneSpheres[] = Sphere[](
 								centerSphere,
@@ -140,8 +158,12 @@ Sphere sceneSpheres[] = Sphere[](
 								leftSphere
 								);
 
+
+
+Plane plane = Plane(vec4(0.f, 0.f, 0.f, 1.f), vec4(0.f, 1.f, 0.f, 0.f), oak);
+
 /*
-*	Ray tracer code
+*	RAY TRACER
 */
 
 // TODO: shadows
@@ -162,31 +184,29 @@ vec4 estimateIndirectLight(inout Ray ray, inout HitData data) {
 vec4 estimateDirectLight(inout Ray ray, inout HitData data) {
 	vec4 radiance = vec4(0.f, 0.f, 0.f, 1.f);
 
-	for (int i = 0; i < 3; i ++){
+	for (int i = 0; i < 3; i++) {
 		Light light = sceneLighting[i];
 
+		vec4 I = light.color;
 		vec4 lightPosition = light.position;
 		vec4 vertex = ray.P + data.tVals[0]*ray.d;
-		vec4 n = data.normal;
-
+		vec4 normal = data.normal;
 		vec4 vertexToLight = lightPosition - vertex;
 
-		float dist = pow(-vertexToLight.x, 2.f) + pow(-vertexToLight.y, 2.f) + pow(-vertexToLight.z, 2.f);
-		float denom = 1.f + dist + pow(dist, 2.f);
-		float attenuation = min(1.f, 1.f/denom);
+		float cosTheta =  max(0.f, dot(normalize(normal), normalize(vertexToLight)));
+		vec4 diffuseComponent = data.mat.diffuseColor*cosTheta;
 
-		float cosTheta =  max(0.f, dot(normalize(n), vertexToLight));
-		vec4 diffuseComponent = attenuation*data.mat.diffuseColor*cosTheta;
-
-		vec4 reflected = -normalize(2.f*n*(dot(n, vertexToLight)) - vertexToLight);
+		vec4 reflected = -normalize(2.f*normal*(dot(normal, vertexToLight)) - vertexToLight);
 		float cosPhi = max(0.f, dot(reflected, ray.d));
-		vec4 specularComponent = data.mat.specularColor*pow(cosPhi, 1);
+		vec4 specularComponent = data.mat.specularColor*pow(cosPhi, 1.f); // Add shininess to mat
 
-		radiance += light.color*(diffuseComponent + specularComponent);
+		radiance += diffuseComponent + specularComponent;
 
 		radiance.x = min(max(radiance.x, 0.f), 1.f);
 		radiance.y = min(max(radiance.y, 0.f), 1.f);
 		radiance.z = min(max(radiance.z, 0.f), 1.f);
+		radiance.w = 1.f;
+	
 	}
 
 	return radiance;
@@ -212,6 +232,20 @@ vec2 getQuadradicRoots(float A, float B, float C) {
 }
 
 
+HitData planeRayIntersection(inout Plane plane, inout Ray ray) {
+	vec4 P = ray.P;
+	vec4 d = ray.d;
+
+	HitData data;
+
+	float denom = dot(plane.normal, d);
+	if (abs(denom) > MIN_VAL) {
+		data.tVals[0] = dot(plane.point - P, plane.normal)/denom;
+	}
+	return data;
+}
+
+
 HitData sphereRayIntersect(inout Sphere sphere, inout Ray ray) {
 	vec4 P = ray.P;
 	vec4 d = ray.d;
@@ -228,8 +262,6 @@ HitData sphereRayIntersect(inout Sphere sphere, inout Ray ray) {
 	data.isIntersect = false; // false until otherwise proven true
 	data.mat = sphere.mat;
 	
-
-
 	data.tVals[0] = min(tVals.x, tVals.y);
 	data.normal = normalize(P + data.tVals[0]*d);
 	return data;
@@ -269,6 +301,15 @@ HitData intersect(inout Ray ray) {
 			data = retrieved;
 		}
 	}
+
+//	HitData retrieved = planeRayIntersection(plane, ray);
+//	float t_prime = retrieved.tVals[0];
+//	if (t_prime < t) {
+//		t = t_prime;
+//		retrieved.isIntersect = true;
+//		data = retrieved;
+//	}
+
 	return data;
 }
 
@@ -287,50 +328,50 @@ vec4 traceRay(inout Ray ray) {
 }
 
 
-/*
-*	Camera stuff, big TODO
-*/
-vec4 pos = vec4(2.f, 2.f, 2.f, 1.f);
-
-float near = 0.1f;
-float far = 30.f;
-float c = -near/far;
-mat4 projection = transpose(mat4(
-                                 1.f, 0.f, 0.f, 0.f,
-                                 0.f, 1.f, 0.f, 0.f,
-                                 0.f, 0.f, -1.f/(c + 1.f), c/(c + 1.f),
-                                 0.f, 0.f, -1.f, 0.f
-                                 ));
-float thetaH = 60.f;
-float aspectRatio = dimensions.x/dimensions.y;
-float h = 1.f/(far * tan(radians(thetaH/2.f)));
-float w = h/aspectRatio;
-mat4 scaleMatrix = transpose(mat4(
-								w, 0.f, 0.f, 0.f,
-								0.f, h, 0.f, 0.f,
-								0.f, 0.f, 1.f/far, 0.f,
-								0.f, 0.f, 0.f, 1.f
-								));
-
-mat4 translationMatrix = transpose(mat4(
-										1.f, 0.f, 0.f, -pos.x,
-										0.f, 1.f, 0.f, -pos.y,
-										0.f, 0.f, 1.f, -pos.z,
-										0.f, 0.f, 0.f, 1.f
-										));
-vec4 up = vec4(0.f, 1.f, 0.f, 0.f);
-vec4 w_rot = vec4(1.f, 1.f, 1.f, 0.f);
-vec4 v_rot = vec4(normalize(up - dot(up.xyz, w_rot.xyz)*w_rot));
-vec4 u_rot = vec4(cross(v_rot.xyz, w_rot.xyz), 0.f);
-mat4 rotationMatrix = transpose(mat4(
-                                     u_rot.x, u_rot.y, u_rot.z, 0.f,
-                                     v_rot.x, v_rot.y, v_rot.z, 0.f,
-                                     w_rot.x, w_rot.y, w_rot.z, 0.f,
-                                     0.f, 0.f, 0.f, 1.f
-                                     ));
-
-mat4 viewMatrix = rotationMatrix*translationMatrix;
-mat4 M_film2World = inverse(scaleMatrix*viewMatrix);
+///*
+//*	Camera stuff, big TODO
+//*/
+//vec4 pos = vec4(2.f, 2.f, 2.f, 1.f);
+//
+//float near = 0.1f;
+//float far = 30.f;
+//float c = -near/far;
+//mat4 projection = transpose(mat4(
+//                                 1.f, 0.f, 0.f, 0.f,
+//                                 0.f, 1.f, 0.f, 0.f,
+//                                 0.f, 0.f, -1.f/(c + 1.f), c/(c + 1.f),
+//                                 0.f, 0.f, -1.f, 0.f
+//                                 ));
+//float thetaH = 60.f;
+//float aspectRatio = dimensions.x/dimensions.y;
+//float h = 1.f/(far * tan(radians(thetaH/2.f)));
+//float w = h/aspectRatio;
+//mat4 scaleMatrix = transpose(mat4(
+//								w, 0.f, 0.f, 0.f,
+//								0.f, h, 0.f, 0.f,
+//								0.f, 0.f, 1.f/far, 0.f,
+//								0.f, 0.f, 0.f, 1.f
+//								));
+//
+//mat4 translationMatrix = transpose(mat4(
+//										1.f, 0.f, 0.f, -pos.x,
+//										0.f, 1.f, 0.f, -pos.y,
+//										0.f, 0.f, 1.f, -pos.z,
+//										0.f, 0.f, 0.f, 1.f
+//										));
+//vec4 up = vec4(0.f, 1.f, 0.f, 0.f);
+//vec4 w_rot = vec4(1.f, 1.f, 1.f, 0.f);
+//vec4 v_rot = vec4(normalize(up - dot(up.xyz, w_rot.xyz)*w_rot));
+//vec4 u_rot = vec4(cross(v_rot.xyz, w_rot.xyz), 0.f);
+//mat4 rotationMatrix = transpose(mat4(
+//                                     u_rot.x, u_rot.y, u_rot.z, 0.f,
+//                                     v_rot.x, v_rot.y, v_rot.z, 0.f,
+//                                     w_rot.x, w_rot.y, w_rot.z, 0.f,
+//                                     0.f, 0.f, 0.f, 1.f
+//                                     ));
+//
+//mat4 viewMatrix = rotationMatrix*translationMatrix;
+//mat4 M_film2World = inverse(scaleMatrix*viewMatrix);
 
 
 /*
@@ -344,8 +385,8 @@ void main() {
 	float y = position.y; //in film
 
 	// TODO: why isnt this working (perspective)	
-	vec4 pt_film = vec4(x, y, -1.f, 1.f);
-	vec4 pt_world = M_film2World*pt_film;
+//	vec4 pt_film = vec4(x, y, -1.f, 1.f);
+//	vec4 pt_world = M_film2World*pt_film;
 
 	vec4 d = vec4(0.f, 0.f, -1.f, 0.f);
 	vec4 P = vec4(x, y, 0.f, 1.f);

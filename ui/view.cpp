@@ -66,14 +66,17 @@ void View::initializeGL() {
     glFrontFace(GL_CCW);
 
     // Loading in our ray tracer!
-    std::string rayTracerSource = ResourceLoader::loadResourceFileToString(":/shaders/rayTracer.comp");
-    m_rayTracerCompProgram = std::make_unique<Shader>(rayTracerSource);
+    if (false){ // TODO: comp shader
+        std::string rayTracerSource = ResourceLoader::loadResourceFileToString(":/shaders/rayTracer.comp");
+        m_rayTracerCompProgram = std::make_unique<Shader>(rayTracerSource);
+    }
 
     // Full screen quad
     std::string quadVertexSource = ResourceLoader::loadResourceFileToString(":/shaders/quad.vert");
     std::string quadFragmentSource = ResourceLoader::loadResourceFileToString(":/shaders/quad.frag");
     m_textureProgram = std::make_unique<Shader>(quadVertexSource, quadFragmentSource);
 
+    // Loading in our ray tracer!
     std::string rayTracerFragmentSource = ResourceLoader::loadResourceFileToString(":/shaders/rayTracer.frag");
     m_rayTracerFragProgram = std::make_unique<Shader>(quadVertexSource, rayTracerFragmentSource);
 
@@ -112,7 +115,7 @@ void View::initializeGL() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_width, m_height, 0, GL_RGBA, GL_FLOAT, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, std::min(512, m_width), std::min(m_height, 512), 0, GL_RGBA, GL_FLOAT, 0);
     glBindImageTexture(0, m_renderOut, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 }
 
@@ -129,13 +132,11 @@ void View::paintWithFragmentShaders() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     m_rayTracerFragProgram->bind();
     // TODO: Implement the demo rendering here
-    glm::mat4 M_film2World = glm::inverse(m_scale*m_view);
-    glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
+//    glm::mat4 M_film2World = glm::inverse(m_scale*m_view);
+//    glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
 
 //    m_rayTracerFragProgram->setUniform("M_film2World", M_film2World);
 //    m_rayTracerFragProgram->setUniform("eye", eye);
-    m_rayTracerFragProgram->setUniform("height", m_height);
-    m_rayTracerFragProgram->setUniform("width", m_width);
     m_rayTracerFragProgram->setUniform("time", m_time.second());
     m_rayTracerFragProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
 //    m_rayTracerFragProgram->setUniform("depth", 1);
@@ -145,6 +146,7 @@ void View::paintWithFragmentShaders() {
     m_quad->draw();
     m_rayTracerFragProgram->unbind();
     // m_fbo->unbind();
+    glBindTexture(0, m_renderOut);
 }
 
 // TODO: it would be nice to optimize this based on a user's particular hardware
@@ -233,7 +235,7 @@ void View::resizeGL(int w, int h) {
     m_height = h;
     glViewport(0, 0, w, h);
 
-    m_fbo = std::make_unique<FBO>(1, FBO::DEPTH_STENCIL_ATTACHMENT::NONE, m_width, m_height, TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE);
+//    m_fbo = std::make_unique<FBO>(1, FBO::DEPTH_STENCIL_ATTACHMENT::NONE, m_width, m_height, TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE);
 }
 
 void View::mousePressEvent(QMouseEvent *event) {
