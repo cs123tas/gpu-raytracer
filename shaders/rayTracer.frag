@@ -25,16 +25,15 @@ uniform vec2 dimensions;
 *	Out to frame buffer
 */
 out vec4 fragColor;
-
+////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
 *	STRUCTS
 */
+
 struct Ray {
 	vec4 P; 
 	vec4 d;
-
-	int type;
 };
 
 
@@ -43,6 +42,22 @@ struct Material {
 	vec4 specularColor;
 	vec4 reflectedColor;
 	vec4 tranparencyColor;
+	
+	float shininess;
+};
+
+struct Data {
+	bool isIntersect;
+	vec4 normal;
+	Material mat;
+	float t;
+};
+
+
+struct RayPath {
+	Ray rays[4]; // 0 shadow ray | 1 primary ray | 2 1st reflection ray | 4 1st refraction ray
+	Data data[4];
+
 };
 
 
@@ -61,27 +76,15 @@ struct Plane {
 	Material mat;
 };
 
-
-struct HitData {
-	bool isIntersect;
-	vec4 normal;
-	Material mat;
-
-	int rayType[]; // 0 = Shadow, 1 = Primary Ray, 2 = Reflection, 3 = Refraction
-	float tVals[]; // corresponding lengths
-	Ray ray[]; //corresponding rays
-};
-
-
 struct Light {
 	vec4 position;
 	vec4 color;
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////
 /*
 *	SCENE REPRESENTATION
-*
-*	TODO: artistic vision
+
 */
 Light sceneLighting[]  = Light[3](
 								Light( vec4(3.f, 3.f, 3.f, 1.f), vec4(1.f, 1.f, 1.f, 1.f) ),
@@ -94,44 +97,46 @@ Material eggShell = Material(
 							vec4(240.f, 234.f, 214.f, 255.f)/255.f, 
 							vec4(1.f, 1.f, 1.f, 1.f), 
 							vec4(1.f, 1.f, 0.9f, 1.f), 
-							vec4(0)
+							vec4(0),
+							3.f
 							);
 Material salmon = Material(
 							vec4(250.f, 128.f, 114.f, 255.f)/255.f, 
 							vec4(1.f, 1.f, 1.f, 1.f), 
 							vec4(1.f, 1.f, 1.f, 1.f), 
-							vec4(0)
+							vec4(0),
+							4.f
 							);
 
 Material forest = Material(
 							vec4(34.f, 139.f, 34.f, 255.f)/255.f, 
 							vec4(1.f, 1.f, 1.f, 1.f), 
 							vec4(1.f, 1.f, 1.f, 1.f), 
-							vec4(0)
+							vec4(0),
+							1.f
 							);
 
 Material oak = Material(
 						vec4(120.f, 81.f, 45.f, 255.f)/255.f, 
 						vec4(1.f, 1.f, 1.f, 1.f), 
 						vec4(1.f, 1.f, 0.9f, 1.f), 
-						vec4(0)
+						vec4(0),
+						1.f
 						);
-
-
-// TODO: animate here? Hard coded translation scale 
+						
 float smallRadius = 0.25f;
 mat4 leftSphereTransformation = transpose(mat4(
-									smallRadius, 0.f, 0.f, -.5f,
-									0.f, smallRadius, 0.f, sin(10.f*time),
-									0.f, 0.f, smallRadius, -1.f,
+									smallRadius, 0.f, 0.f, sin(10.f*time),
+									0.f, smallRadius, 0.f, 0.f,
+									0.f, 0.f, smallRadius, cos(10.f*time),
 									0.f, 0.f, 0.f, 1.f
 									));
 
-float bigRadius = 1.25f;
+float bigRadius = 1.1f;
 mat4 rightSphereTransformation = transpose(mat4(
 										bigRadius, 0.f, 0.f, 0.2f,
-										0.f, bigRadius, 0.f, (1.f/bigRadius)*cos(100.f*time),
-										0.f, 0.f, bigRadius, -3.f,
+										0.f, bigRadius, 0.f, 0.01f*cos(100.f*time),
+										0.f, 0.f, bigRadius, -5.f,
 										0.f, 0.f, 0.f, 1.f
 									));
 
@@ -152,6 +157,7 @@ Sphere sceneSpheres[] = Sphere[3](centerSphere, rightSphere, leftSphere);
 
 Plane plane = Plane(vec4(0.f, 0.f, 0.f, 1.f), vec4(	0.f, 1.f, 0.f, 0.f), oak);
 
+/////////////////////////////////////////////////////////////////////////////////
 /*
 *	RAY TRACER
 */
@@ -163,15 +169,7 @@ int checkOcclusions(inout Light light) {
 }
 
 
-// TODO: reflections and refractions, no recursion, just use secondary rays unless the fancy wavefront pattern
-vec4 estimateIndirectLight(inout Ray ray, inout HitData data) {
-
-	return vec4(0.f);
-}
-
-
-// TODO: diffuse and specular
-vec4 estimateDirectLight(inout Ray ray, inout HitData data) {
+vec4 computeLighting(inout Ray ray, inout Data data) {
 	vec4 radiance = vec4(0.f, 0.f, 0.f, 1.f);
 
 	for (int i = 0; i < 3; i++) {
@@ -179,7 +177,7 @@ vec4 estimateDirectLight(inout Ray ray, inout HitData data) {
 
 		vec4 I = light.color;
 		vec4 lightPosition = light.position;
-		vec4 vertex = ray.P + data.tVals[0]*ray.d;
+		vec4 vertex = ray.P + data.t*ray.d;
 		vec4 normal = data.normal;
 		vec4 vertexToLight = lightPosition - vertex;
 
@@ -188,9 +186,10 @@ vec4 estimateDirectLight(inout Ray ray, inout HitData data) {
 
 		vec4 reflected = -normalize(2.f*normal*(dot(normal, vertexToLight)) - vertexToLight);
 		float cosPhi = max(0.f, dot(reflected, ray.d));
-		vec4 specularComponent = I*data.mat.specularColor*pow(cosPhi, 1.f); // Add shininess to mat
+		vec4 specularComponent = I*data.mat.specularColor*pow(cosPhi, data.mat.shininess); // Add shininess to mat
 
 		radiance += diffuseComponent;
+		radiance += specularComponent;
 
 		radiance.x = min(max(radiance.x, 0.f), 1.f);
 		radiance.y = min(max(radiance.y, 0.f), 1.f);
@@ -221,21 +220,21 @@ vec2 getQuadradicRoots(float A, float B, float C) {
 }
 
 
-HitData planeRayIntersection(inout Plane plane, inout Ray ray) {
+Data planeRayIntersection(inout Plane plane, inout Ray ray) {
 	vec4 P = ray.P;
 	vec4 d = ray.d;
 
-	HitData data;
+	Data data;
 
 	float denom = dot(plane.normal, d);
 	if (abs(denom) > MIN_VAL) {
-		data.tVals[0] = dot(plane.point - P, plane.normal)/denom;
+		data.t = dot(plane.point - P, plane.normal)/denom;
 	}
 	return data;
 }
 
 
-HitData sphereRayIntersect(inout Sphere sphere, inout Ray ray) {
+Data sphereRayIntersect(inout Sphere sphere, inout Ray ray) {
 	vec4 P = ray.P;
 	vec4 d = ray.d;
 
@@ -247,24 +246,23 @@ HitData sphereRayIntersect(inout Sphere sphere, inout Ray ray) {
 
 	vec2 tVals = getQuadradicRoots(A, B, C);
 
-	HitData data;
+	Data data;
 	data.isIntersect = false; // false until otherwise proven true
 	data.mat = sphere.mat;
 	
-	data.tVals[0] = min(tVals.x, tVals.y);
-	data.normal = normalize(P + data.tVals[0]*d);
+	data.t = min(tVals.x, tVals.y);
+	data.normal = normalize(P + data.t*d);
 	return data;
 }
 
 
-// TODO: how to represent the scene, I'm thinking hardcoded SDF like lab 10
-HitData intersect(inout Ray ray) {
+Data intersect(inout Ray ray) {
 	// TODO: restore
-	HitData data; // blank data
-	data.tVals[0] = MAX_VAL;
+	Data data; // blank data
+	data.t = MAX_VAL;
 	data.normal = vec4(0.f, 0.f, 0.f, 0.f);
 	vec4 darkness = vec4(0.f, 0.f, 0.f, 0.f);
-	data.mat = Material(darkness, darkness, darkness, darkness);
+	data.mat = Material(darkness, darkness, darkness, darkness, 0.f);
 
 	float t = MAX_VAL;
 
@@ -274,13 +272,12 @@ HitData intersect(inout Ray ray) {
 		mat4 transformation = sphere.transformation;
 		Ray rayInObjectSpace = Ray(
 									inverse(transformation)*ray.P,
-									inverse(transformation)*ray.d,
-									1
+									inverse(transformation)*ray.d
 									);
 
-		HitData retrieved = sphereRayIntersect(sphere, rayInObjectSpace);
+		Data retrieved = sphereRayIntersect(sphere, rayInObjectSpace);
 
-		float t_prime = retrieved.tVals[0]; // first 
+		float t_prime = retrieved.t; // first 
 
 		if (t_prime < t) {
 			t = t_prime;
@@ -291,77 +288,66 @@ HitData intersect(inout Ray ray) {
 		}
 	}
 
-//	HitData retrieved = planeRayIntersection(plane, ray);
-//	float t_prime = retrieved.tVals[0];
-//	if (t_prime < t) {
-//		t = t_prime;
-//		retrieved.isIntersect = true;
-//		data = retrieved;
-//	}
-
 	return data;
 }
 
 
 // inout is how you pass by ref in glsl
 vec4 traceRay(inout Ray ray) {
-	HitData data = intersect(ray);
+	Data data = intersect(ray);
 
 	bool isIntersect = data.isIntersect;
 	vec4 radiance = vec4(0.f, 0.f, 0.f, 1.f);
 	// TODO: restore when ready
 	if (isIntersect) {
-		radiance = estimateDirectLight(ray, data) + estimateIndirectLight(ray, data);
+		radiance = computeLighting(ray, data);
 	}
 	return radiance;
 }
 
 
-///*
-//*	Camera stuff, big TODO
-//*/
-//vec4 pos = vec4(2.f, 2.f, 2.f, 1.f);
-//
-//float near = 0.1f;
-//float far = 30.f;
-//float c = -near/far;
-//mat4 projection = transpose(mat4(
-//                                 1.f, 0.f, 0.f, 0.f,
-//                                 0.f, 1.f, 0.f, 0.f,
-//                                 0.f, 0.f, -1.f/(c + 1.f), c/(c + 1.f),
-//                                 0.f, 0.f, -1.f, 0.f
-//                                 ));
-//float thetaH = 60.f;
-//float aspectRatio = dimensions.x/dimensions.y;
-//float h = 1.f/(far * tan(radians(thetaH/2.f)));
-//float w = h/aspectRatio;
-//mat4 scaleMatrix = transpose(mat4(
-//								w, 0.f, 0.f, 0.f,
-//								0.f, h, 0.f, 0.f,
-//								0.f, 0.f, 1.f/far, 0.f,
-//								0.f, 0.f, 0.f, 1.f
-//								));
-//
-//mat4 translationMatrix = transpose(mat4(
-//										1.f, 0.f, 0.f, -pos.x,
-//										0.f, 1.f, 0.f, -pos.y,
-//										0.f, 0.f, 1.f, -pos.z,
-//										0.f, 0.f, 0.f, 1.f
-//										));
-//vec4 up = vec4(0.f, 1.f, 0.f, 0.f);
-//vec4 w_rot = vec4(1.f, 1.f, 1.f, 0.f);
-//vec4 v_rot = vec4(normalize(up - dot(up.xyz, w_rot.xyz)*w_rot));
-//vec4 u_rot = vec4(cross(v_rot.xyz, w_rot.xyz), 0.f);
-//mat4 rotationMatrix = transpose(mat4(
-//                                     u_rot.x, u_rot.y, u_rot.z, 0.f,
-//                                     v_rot.x, v_rot.y, v_rot.z, 0.f,
-//                                     w_rot.x, w_rot.y, w_rot.z, 0.f,
-//                                     0.f, 0.f, 0.f, 1.f
-//                                     ));
-//
-//mat4 viewMatrix = rotationMatrix*translationMatrix;
-//mat4 M_film2World = inverse(scaleMatrix*viewMatrix);
+vec4 traceRays(inout RayPath rayPath) {
+	vec4 radiance = vec4(0.f, 0.f, 0.f, 0.f);
+	
+	// DIRECT PASS
+	Ray primaryRay = rayPath.rays[1];
 
+	Data primaryData = intersect(primaryRay);
+	rayPath.data[1] = primaryData; // primary hit data here
+
+
+	// REFLECTION PASS
+	float t = primaryData.t;
+	vec4 vertex = primaryRay.P + t*primaryRay.d;
+
+	vec4 normal = primaryData.normal;
+	vec4 v = primaryRay.P + primaryRay.d;
+
+	vec4 reflected = normalize(2.f*normal*dot(normal, v) - v);
+	Ray reflectionRay = Ray(vertex + MIN_VAL*reflected, reflected);
+	Data reflectionData = intersect(reflectionRay);
+
+	// REFRACTION PASS
+	
+
+	// LIGHTING COMP
+	if (primaryData.isIntersect) { // directLight
+		radiance += computeLighting(primaryRay, primaryData);
+	} 
+	if (reflectionData.isIntersect) { // indirect light
+		vec4 reflectionColor = reflectionData.mat.reflectedColor;
+		radiance += reflectionColor*computeLighting(reflectionRay, reflectionData);
+	}
+	
+	radiance.x = min(radiance.x, 1.f);
+	radiance.y = min(radiance.y, 1.f);
+	radiance.z = min(radiance.z, 1.f);
+	radiance.w = 1.f;
+
+	return radiance;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
 *  Driver code
@@ -373,20 +359,21 @@ void main() {
 	float x = position.x; //in film
 	float y = position.y; //in film
 
-	// TODO: why isnt this working (perspective)	
-//	vec4 pt_film = vec4(x, y, -1.f, 1.f);
-//	vec4 pt_world = M_film2World*pt_film;
 
 	vec4 d = vec4(0.f, 0.f, -1.f, 0.f);
 	vec4 P = vec4(x, y, 0.f, 1.f);
-//	vec4 eye = M_film2World*vec4(0.f, 0.f, 0.f, 1.f);
-//	vec4 P = M_film2World*eye;
-//	fragColor = P;
-//	vec4 d = normalize(pt_world - eye);
 
-	Ray primaryRay = Ray(P, d, 1);
-
-	fragColor += traceRay(primaryRay);
+	RayPath path;
+	for (int i = 0; i < 4; i++) { // initialize
+		path.rays[i] = Ray(vec4(0.f), vec4(0.f));
+	}
+	Ray primaryRay = Ray(P, d);
+	path.rays[1] = primaryRay;
+	
+	
+	// TODO: restore
+	// fragColor += traceRay(primaryRay);
+	fragColor += traceRays(path);
 
 	// TODO: remove, debugging lines
 	// fragColor += vec4(time/1000.f, 1.f - time/1000.f, 0.f, 1.f);

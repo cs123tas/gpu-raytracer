@@ -55,6 +55,10 @@ private:
 
     void rebuildMatrices();
 
+    float m_leftSpeed;
+    float m_centerSpeed;
+    float m_rightSpeed;
+    int m_sleepTime;
 
     // Inheritted from QWidget
     void initializeGL();

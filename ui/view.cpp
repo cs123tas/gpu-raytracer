@@ -20,7 +20,11 @@ View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
     m_width(std::min(1000, width())),
     m_angleX(-0.5f),
     m_angleY(0.5f),
-    m_zoom(4.f)
+    m_zoom(4.f),
+    m_leftSpeed(0.1f),
+    m_centerSpeed(1.f),
+    m_rightSpeed(0.01),
+    m_sleepTime(100)
 {
     // View needs all mouse move events, not just mouse drag events
     setMouseTracking(true);
@@ -263,6 +267,7 @@ void View::mouseMoveEvent(QMouseEvent *event) {
         QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
 
         // TODO: Handle mouse movements here
+
     }
 }
 
@@ -288,6 +293,6 @@ void View::tick() {
     // TODO: Implement the demo update here
 
     // Flag this view for repainting (Qt will call paintGL() soon after)
-    Sleep(20); // TODO: remove for non-Windows
+    Sleep(m_sleepTime); // TODO: remove for non-Windows
     update();
 }
