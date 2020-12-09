@@ -29,6 +29,7 @@ public:
 private:
     QTime m_time;
     QTimer m_timer;
+
     bool m_captureMouse;
     int m_height;
     int m_width;

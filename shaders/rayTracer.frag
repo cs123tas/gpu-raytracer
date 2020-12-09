@@ -85,9 +85,9 @@ struct Light {
 /*
 *	SCENE REPRESENTATION
 *
-*	TODO: artistic visionI
+*	TODO: artistic vision
 */
-Light sceneLighting[]  = Light[](
+Light sceneLighting[]  = Light[3](
 								Light( vec4(3.f, 3.f, 3.f, 1.f), vec4(1.f, 1.f, 1.f, 1.f) ),
 								Light( vec4(-1, 2.f, 4.f, 1.f), vec4(1.f, 1.f, 1.f, 1.f) ),
 								Light( vec4(0.f, 2.f, 1.f, 1.f), vec4(1.f, 1.f, 1.f, 1.f) )
@@ -152,15 +152,9 @@ Sphere leftSphere = Sphere(leftSphereTransformation, salmon);
 Sphere rightSphere = Sphere(rightSphereTransformation, forest);
 Sphere centerSphere = Sphere(centerSphereTransformation, eggShell);
 
-Sphere sceneSpheres[] = Sphere[](
-								centerSphere,
-								rightSphere,
-								leftSphere
-								);
+Sphere sceneSpheres[] = Sphere[3](centerSphere, rightSphere, leftSphere);
 
-
-
-Plane plane = Plane(vec4(0.f, 0.f, 0.f, 1.f), vec4(0.f, 1.f, 0.f, 0.f), oak);
+Plane plane = Plane(vec4(0.f, 0.f, 0.f, 1.f), vec4(	0.f, 1.f, 0.f, 0.f), oak);
 
 /*
 *	RAY TRACER
@@ -200,13 +194,12 @@ vec4 estimateDirectLight(inout Ray ray, inout HitData data) {
 		float cosPhi = max(0.f, dot(reflected, ray.d));
 		vec4 specularComponent = data.mat.specularColor*pow(cosPhi, 1.f); // Add shininess to mat
 
-		radiance += diffuseComponent + specularComponent;
+		radiance += diffuseComponent;
 
 		radiance.x = min(max(radiance.x, 0.f), 1.f);
 		radiance.y = min(max(radiance.y, 0.f), 1.f);
 		radiance.z = min(max(radiance.z, 0.f), 1.f);
 		radiance.w = 1.f;
-	
 	}
 
 	return radiance;
@@ -397,7 +390,9 @@ void main() {
 
 	Ray primaryRay = Ray(P, d, 1);
 
-	fragColor += traceRay(primaryRay);
+	//fragColor += traceRay(primaryRay);
 
+	// fragColor += vec4(time/1000.f, 1.f - time/1000.f, 0.f, 1.f);
 	//fragColor += d*0.5f + 0.5f;
+	fragColor += vec4(time, 0.f, 0.f, 1.f);
 }

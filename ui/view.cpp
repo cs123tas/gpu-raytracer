@@ -105,18 +105,23 @@ void View::initializeGL() {
         std::cout << "Max FBO size: " << maxRenderBufferSize << std::endl;
     }
 
-    // TODO: abstract this in a framebuffer, remove instance m_renderOut, I hate looking at this
+    // TODO: I don't know why the FBO class isn't working, here's raw ogl instead
     glGenTextures(1, &m_renderOut);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_renderOut);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, std::min(512, m_width), std::min(m_height, 512), 0, GL_RGBA, GL_FLOAT, 0);
-    glBindImageTexture(0, m_renderOut, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+//    m_fbo = std::make_unique<FBO>(1,
+//                                  FBO::DEPTH_STENCIL_ATTACHMENT::NONE,
+//                                  m_width,
+//                                  m_height,
+//                                  TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE,
+//                                  TextureParameters::FILTER_METHOD::LINEAR,
+//                                  GL_FLOAT
+//                                  );
 }
 
 void View::paintGL() {
@@ -127,26 +132,23 @@ void View::paintGL() {
     }
 }
 
+// Figure out fbo problem, important for performance
 void View::paintWithFragmentShaders() {
-    // m_fbo->bind();
+    //m_fbo->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     m_rayTracerFragProgram->bind();
-    // TODO: Implement the demo rendering here
-//    glm::mat4 M_film2World = glm::inverse(m_scale*m_view);
-//    glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
+    m_rayTracerFragProgram->setUniform("time", static_cast<float>(m_time.msec()/1000.f));
 
-//    m_rayTracerFragProgram->setUniform("M_film2World", M_film2World);
-//    m_rayTracerFragProgram->setUniform("eye", eye);
-    m_rayTracerFragProgram->setUniform("time", m_time.second());
+
     m_rayTracerFragProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
-//    m_rayTracerFragProgram->setUniform("depth", 1);
 
     glActiveTexture(GL_TEXTURE0); // TODO: is this abstracted?
     glBindTexture(GL_TEXTURE_2D, m_renderOut);
+    //m_fbo->getColorAttachment(0).bind();
     m_quad->draw();
     m_rayTracerFragProgram->unbind();
     // m_fbo->unbind();
-    glBindTexture(0, m_renderOut);
+    glBindImageTexture(0, m_renderOut, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 }
 
 // TODO: it would be nice to optimize this based on a user's particular hardware
@@ -184,12 +186,6 @@ void View::paintWithComputeShaders(){
         glm::mat4 M_film2World = glm::inverse(m_scale*m_view); // TODO: scale matrix
         glm::vec4 eye = M_film2World*glm::vec4(0.f, 0.f, 0.f, 1.f);
 
-        m_rayTracerCompProgram->setUniform("M_film2World", M_film2World);
-        m_rayTracerCompProgram->setUniform("eye", eye);
-        m_rayTracerCompProgram->setUniform("height", m_height);
-        m_rayTracerCompProgram->setUniform("width", m_width);
-        m_rayTracerCompProgram->setUniform("time", m_time.second());
-        m_rayTracerFragProgram->setUniform("depth", 1);
 
         glDispatchCompute(static_cast<GLuint>(std::min(m_width, 1000)),
                           static_cast<GLuint>(std::min(m_height, 1000)),
@@ -231,11 +227,19 @@ void View::resizeGL(int w, int h) {
     w = static_cast<int>(w / ratio);
     h = static_cast<int>(h / ratio);
 
-    m_width = w;
-    m_height = h;
-    glViewport(0, 0, w, h);
+    m_width = std::min(w, 512);
+    m_height = std::min(h, 512);
+    glViewport(0, 0, m_width, m_height);
 
-//    m_fbo = std::make_unique<FBO>(1, FBO::DEPTH_STENCIL_ATTACHMENT::NONE, m_width, m_height, TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE);
+    m_fbo = std::make_unique<FBO>(1,
+                                  FBO::DEPTH_STENCIL_ATTACHMENT::NONE,
+                                  m_width,
+                                  m_height,
+                                  TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE,
+                                  TextureParameters::FILTER_METHOD::NEAREST,
+                                  GL_FLOAT
+                                  );
+    rebuildMatrices();
 }
 
 void View::mousePressEvent(QMouseEvent *event) {
@@ -280,7 +284,13 @@ void View::tick() {
     float seconds = m_time.restart() * 0.001f;
 
     // TODO: Implement the demo update here
+//    glGenTextures(1, &m_renderOut);
 
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, std::min(512, m_width), std::min(m_height, 512), 0, GL_RGBA, GL_FLOAT, 0);
     // Flag this view for repainting (Qt will call paintGL() soon after)
     update();
 }
