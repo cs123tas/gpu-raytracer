@@ -9,7 +9,7 @@ out vec4 fragColor;
 
 void main(){
     fragColor = vec4(0.0);
-
+    vec2 texelSize = 1.0/textureSize(tex, 0).xy;
 //    vec2 texelSize = 1.0/textureSize(tex, 0).xy;
 //
 //    const int supportWidth = 20;
@@ -23,8 +23,7 @@ void main(){
 //        weights += weight;
 //    }
 //    fragColor /= weights;
-    float x = ((texCoord.x/dimensions.x) + 1.f)/2.f;
-    float y = ((texCoord.y/dimensions.y) + 1.f)/2.f;
-    fragColor = texture(tex, vec2(x*dimensions.x, y(dimensions.y));
-    //fragColor = vec4(1.f, 0.f, 0.f, 1.f);
+     
+    vec2 transformed = 2*((texCoord/vec2(512, 512)) + 1)*texelSize.x;
+    fragColor = texture(tex, transformed);
 }

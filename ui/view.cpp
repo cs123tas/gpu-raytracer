@@ -137,7 +137,7 @@ void View::paintGL() {
 void View::paintWithFragmentShaders() {
     m_motionBlurFBO->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+    glViewport(0, 0, m_width, m_height);
     m_rayTracerFragProgram->bind();
 
     glm::mat4 M_film2World = glm::inverse(m_scale*m_view);
@@ -156,8 +156,9 @@ void View::paintWithFragmentShaders() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, m_width, m_height);
 
-    m_motionBlurProgram->bind();
-    m_motionBlurProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
+    //m_motionBlurProgram->bind();
+    //m_motionBlurProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
+
     m_quad->draw();
 }
 
@@ -301,6 +302,6 @@ void View::tick() {
     // TODO: Implement the demo update here
 
     // Flag this view for repainting (Qt will call paintGL() soon after)
-    Sleep(m_sleepTime); // TODO: remove for non-Windows
-    update();
+//    Sleep(m_sleepTime); // TODO: remove for non-Windows
+//    update();
 }

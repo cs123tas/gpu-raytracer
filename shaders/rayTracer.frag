@@ -1,10 +1,10 @@
 #version 410 core
 #define MAX_VAL  1000.f
-#define MIN_VAL 0.001f
+#define MIN_VAL 0.01f
 #define PI 3.1415926535897932384626433832795
-#define ks 0.5
-#define kd 2.0
-#define kt 0.5
+#define ks 2.f
+#define kd 2.f
+#define kt 2.f
 
 /*
 *	In From quad.vert
@@ -87,36 +87,36 @@ struct Light {
 */
 //////////////////////////////////////////////////////////////////////////////////////////
 Light sceneLighting[]  = Light[](
-								Light( vec4(1.f, 1.5f, -2.f, 1.f), vec4(0.3f, 0.3f, 0.3f, 1.f) ), // key light
-								Light( vec4(-1, 1.f, -2.f, 1.f), vec4(0.2f, 0.2f, 0.2f, 1.f) ), // rim light
-								Light( vec4(3.f, 3.f, 3.f, 1.f), vec4(0.2f, 0.3f, 0.5f, 1.f) ), // back light
+								Light( vec4(2.f, 2.f, -2.f, 1.f), vec4(0.5f, 0.5f, 0.5f, 1.f) ), // key light
+								Light( vec4(-1.f, -2.f, -3.f, 1.f), vec4(0.3f, 0.3f, 0.3f, 1.f) ), // rim light
+								Light( vec4(2.f, 6.f, 6.f, 1.f), vec4(0.5f, 0.5f, 1.f, 1.f) ), // back light
 								Light( vec4(0.f, -3.f, -1.f, 1.f), vec4(0.3f, 0.3f, 0.3f, 1.f) ) // needs a little umph
 								);
 
 Material foggyGlass = Material(
-							vec4(240.f, 240.f, 210.f, 255.f)/255.f, 
-							vec4(1.f), 
-							vec4(1.f), 
-							vec4(1.f),
-							1.f,
-							1.5f
+							vec4(240.f, 240.f, 210.f, 0.f)/255.f, 
+							vec4(vec3(1.f), 0.f), 
+							vec4(vec3(1.f), 0.f), 
+							vec4(vec3(1.f), 0.f),
+							3.f,
+							1.6f
 							);
 Material salmon = Material(
-							vec4(250.f, 130.f,  110.f, 255.f)/255.f, 
-							vec4(1.f), 
+							vec4(250.f, 130.f,  110.f, 100.f)/255.f, 
+							vec4(vec3(1.f), 0.f), 
 							vec4(1.f), 
 							vec4(1.f),
 							3.f,
 							1.3f
 							);
 
-Material forest = Material(
-							vec4(40.f, 145.f, 30.f, 255.f)/255.f, 
+Material iron = Material(
+							vec4(203.f, 205.f, 205.f, 255.f)/255.f, 
 							vec4(1.f), 
 							vec4(1.f), 
 							vec4(1.f),
-							1.f,
-							1.f
+							6.f,
+							1.7f
 							);
 
 Material oak = Material(
@@ -154,7 +154,7 @@ mat4 centerSphereTransformation = transpose(mat4(
 
 
 Sphere leftSphere = Sphere(leftSphereTransformation, salmon);
-Sphere rightSphere = Sphere(rightSphereTransformation, forest);
+Sphere rightSphere = Sphere(rightSphereTransformation, iron);
 Sphere centerSphere = Sphere(centerSphereTransformation, foggyGlass);
 
 Sphere sceneSpheres[] = Sphere[3](centerSphere, rightSphere, leftSphere);
@@ -310,13 +310,16 @@ vec4 computeLighting(inout Ray ray, inout Data data) {
 		float cosPhi = max(0.f, dot(reflected, ray.d));
 		vec4 specularComponent = I*ks*data.mat.specularColor*pow(cosPhi, data.mat.shininess);
 
+		vec4 ambientComponent = vec4(0.01f, 0.01f, 0.01f, 0.01f);
+
+		radiance += ambientComponent;
 		radiance += diffuseComponent;
 		radiance += specularComponent;
 
 		radiance.x = min(max(radiance.x, 0.f), 1.f);
 		radiance.y = min(max(radiance.y, 0.f), 1.f);
 		radiance.z = min(max(radiance.z, 0.f), 1.f);
-		radiance.w = 1.f;
+		radiance.w = min(max(radiance.w, 0.f), 1.f);
 	}
 	return radiance;
 }
@@ -345,7 +348,7 @@ vec4 traceRays(inout Ray primaryRay) {
 
 		float ior = currentData.mat.ior;
 		float r0 = pow((1.f - ior)/(1.f + ior), 2.f); // assume everything else is just air
-		float F = r0 + (1.f - r0)*pow((1.f - dot(normal, v)), currentData.mat.shininess);
+		float F = r0 + (1.f - r0)*pow((1.f - dot(normal, v)), 5.f);
 
 		vec4 reflected = normalize(reflect(-v, normal));
 		Ray reflectionRay = Ray(vertex + MIN_VAL*reflected, reflected);
@@ -356,13 +359,33 @@ vec4 traceRays(inout Ray primaryRay) {
 			radiance += max(vec4(0.f), gamma*F*(ks*reflectionColor*computeLighting(reflectionRay, reflectionData)));
 		}
 
-		vec4 refracted = normalize(refract(normal, v, ior));
-		Ray refractedRay = Ray(vertex + MIN_VAL*refracted, refracted);
+
+		vec4 p = vertex;
+		vec4 n_p = currentData.normal;
+		p = p + MIN_VAL*(-n_p);
+		vec4 d_p = normalize(refract(n_p, v, 1.f/ior));
+		Ray throughRay = Ray(p, d_p);
+		Data throughData = intersect(throughRay);
+
+		vec4 q = p + throughData.t*d_p;
+		vec4 n_q = throughData.normal;
+
+		q = q + MIN_VAL*n_q;
+		vec4 d_q = normalize(refract(n_q, p + throughData.t*d_p, ior));
+		Ray refractedRay = Ray(q, d_q);
 		Data refractionData = intersect(refractedRay);
+
+//
+//		vec4 throughVector = normalize(refract(normal, v, 1.f/ior));
+//		vec4 oppositeSideVertex = vertex + 1*throughVector;
+//		vec4 refracted = normalize(refract(-normal, throughVector, 1.f));
+//		Ray refractedRay = Ray(oppositeSideVertex + MIN_VAL*refracted, refracted);
+//		Data refractionData = intersect(refractedRay);
 
 		if (refractionData.isIntersect) {
 			vec4 refractionColor = refractionData.mat.tranparencyColor;
-			radiance += max(vec4(0.f), gamma*(1.f - F) * (kt*refractionColor*computeLighting(refractedRay, refractionData)));
+			vec4 refractedContrib = max(vec4(0.f), gamma*(1.f - F) * (kt*refractionColor*computeLighting(refractedRay, refractionData)));
+			radiance += refractedContrib;
 		}
 
 		gamma = 1.f/exp(gamma*gamma);
@@ -375,7 +398,7 @@ vec4 traceRays(inout Ray primaryRay) {
 	radiance.x = min(radiance.x, 1.f);
 	radiance.y = min(radiance.y, 1.f);
 	radiance.z = min(radiance.z, 1.f);
-	radiance.w = 1.f;
+	radiance.w = min(radiance.w, 1.f);
 
 	return radiance;
 };
@@ -386,7 +409,7 @@ vec4 traceRays(inout Ray primaryRay) {
 */
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 void main() {
-	vec4 radiance = vec4(0.1f, 0.1f, 0.1f, 1.f);
+	vec4 radiance = vec4(0.1f, 0.1f, 0.1f, 0.1f);
 	float x = position.x; //in film
 	float y = position.y; //in film
 
@@ -409,6 +432,13 @@ void main() {
 	// TODO: remove, debugging lines
 	// fragColor += vec4(time/1000.f, 1.f - time/1000.f, 0.f, 1.f);
 	//fragColor += P;
+//
+//	if (x > 0.1 && x < 0.5) {
+//		fragColor = vec4(1.f, 0.f, 0.f, 1.f);
+//	} else {
+//		fragColor = vec4(0.f);
+//	}
+
 	// fragColor += vec4(time, 0.f, 0.f, 1.f);
 	// fragColor = vec4(1.f, 0.f, 0.f, 1.f);
 }
