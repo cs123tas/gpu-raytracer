@@ -34,13 +34,16 @@ private:
     int m_height;
     int m_width;
 
-    GLuint m_renderOut; //TODO: remove and abstract into texture class
+    GLuint m_renderOut; // TODO: remove
 
     std::unique_ptr<Shader> m_rayTracerCompProgram; // gpgpu
     std::unique_ptr<Shader> m_textureProgram; // fullscreen quad
     std::unique_ptr<Shader> m_rayTracerFragProgram; // glsl raytracer
+    std::unique_ptr<Shader> m_motionBlurProgram; // post-processing effect
+
     std::unique_ptr<OpenGLShape> m_quad;
-    std::unique_ptr<FBO> m_fbo; // TODO: I don't know if we need it, my intuition says so
+
+    std::unique_ptr<FBO> m_motionBlurFBO; // TODO: I don't know if we need it, my intuition says so
 
     glm::mat4 m_view;
     glm::mat4 m_projection;

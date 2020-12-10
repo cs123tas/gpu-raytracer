@@ -5,6 +5,7 @@
         <file alias="quad.vert">shaders/quad.vert</file>
         <file alias="quad.frag">shaders/quad.frag</file>
         <file alias="rayTracer.comp">shaders/rayTracer.comp</file>
-		<file alias="rayTracer.frag">shaders/rayTracer.frag</file>
+	<file alias="rayTracer.frag">shaders/rayTracer.frag</file>
+	<file alias="motionBlur.frag">shaders/motionBlur.frag</file>
     </qresource>
 </RCC>
