@@ -12,7 +12,7 @@
 using namespace CS123::GL;
 
 View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
-    m_fbo(nullptr),
+    m_motionBlurFBO(nullptr),
     m_time(),
     m_timer(),
     m_captureMouse(false),
@@ -85,6 +85,10 @@ void View::initializeGL() {
     std::string rayTracerFragmentSource = ResourceLoader::loadResourceFileToString(":/shaders/rayTracer.frag");
     m_rayTracerFragProgram = std::make_unique<Shader>(quadVertexSource, rayTracerFragmentSource);
 
+    // Loading in post-processing shaders
+    std::string motionBlurFragmentSource = ResourceLoader::loadResourceFileToString(":/shaders/motionBlur.frag");
+    m_motionBlurProgram = std::make_unique<Shader>(quadVertexSource, motionBlurFragmentSource);
+
     std::vector<GLfloat> quadData{
         -1.f, 1.f, 0.0,
          0.f, 0.f,
@@ -102,6 +106,12 @@ void View::initializeGL() {
     m_quad->setAttribute(ShaderAttrib::TEXCOORD0, 2, 3*sizeof(GLfloat), VBOAttribMarker::DATA_TYPE::FLOAT, false);
     m_quad->buildVAO();
 
+    m_postProcessingQuad = std::make_unique<OpenGLShape>();
+    m_postProcessingQuad->setVertexData(&quadData[0], quadData.size(), VBO::GEOMETRY_LAYOUT::LAYOUT_TRIANGLE_STRIP, 4);
+    m_postProcessingQuad->setAttribute(ShaderAttrib::POSITION, 3, 0, VBOAttribMarker::DATA_TYPE::FLOAT, false);
+    m_postProcessingQuad->setAttribute(ShaderAttrib::TEXCOORD0, 2, 3*sizeof(GLfloat), VBOAttribMarker::DATA_TYPE::FLOAT, false);
+    m_postProcessingQuad->buildVAO();
+
     // Print the max FBO dimension.
     bool isBenchMarkingFBO = false;
     if (isBenchMarkingFBO) {
@@ -110,23 +120,13 @@ void View::initializeGL() {
         std::cout << "Max FBO size: " << maxRenderBufferSize << std::endl;
     }
 
-    // TODO: I don't know why the FBO class isn't working, here's raw ogl instead
-    glGenTextures(1, &m_renderOut);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, std::min(1000, m_width), std::min(m_height, 1000), 0, GL_RGBA, GL_FLOAT, 0);
-
-//    m_fbo = std::make_unique<FBO>(1,
-//                                  FBO::DEPTH_STENCIL_ATTACHMENT::NONE,
-//                                  m_width,
-//                                  m_height,
-//                                  TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE,
-//                                  TextureParameters::FILTER_METHOD::LINEAR,
-//                                  GL_FLOAT
-//                                  );
+    m_motionBlurFBO = std::make_unique<FBO>(1,
+                                  FBO::DEPTH_STENCIL_ATTACHMENT::DEPTH_ONLY,
+                                  std::min(1000, m_width),
+                                  std::min(1000, m_height),
+                                  TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE
+                                  );
 }
 
 void View::paintGL() {
@@ -139,9 +139,8 @@ void View::paintGL() {
 
 // Figure out fbo problem, important for performance
 void View::paintWithFragmentShaders() {
-    //m_fbo->bind();
+    //m_motionBlurFBO->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 
     m_rayTracerFragProgram->bind();
     m_rayTracerFragProgram->setUniform("time", static_cast<float>(m_time.msec()/1000.f));
@@ -150,16 +149,25 @@ void View::paintWithFragmentShaders() {
     m_rayTracerFragProgram->setUniform("rightSpeed", m_rightSpeed);
     m_rayTracerFragProgram->setUniform("leftSpeed", m_leftSpeed);
     m_rayTracerFragProgram->setUniform("centerSpeed", m_centerSpeed);
-    glActiveTexture(GL_TEXTURE0); // TODO: restore after figuring out the fbo issues
-    glBindTexture(GL_TEXTURE_2D, m_renderOut);
-    //m_fbo->getColorAttachment(0).bind();
+    //m_motionBlurFBO->getColorAttachment(0).bind();
     m_quad->draw();
-    m_rayTracerFragProgram->unbind();
-    // m_fbo->unbind();
-    glBindImageTexture(0, m_renderOut, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+
+    //m_motionBlurFBO->getColorAttachment(0).bind();
+    //m_motionBlurFBO->unbind();
+
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    //m_motionBlurProgram->bind();
+    //m_postProcessingQuad->draw();
+    //m_motionBlurFBO->unbind();
+
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    //m_motionBlurProgram->unbind();
 }
 
-// TODO: it would be nice to optimize this based on a user's particular hardware
+
 static void checkAvailableWorkers() {
     /*
      * This checks how many workers are
@@ -243,13 +251,11 @@ void View::resizeGL(int w, int h) {
     m_height = std::min(h, 1000);
     glViewport(0, 0, m_width, m_height);
 
-    m_fbo = std::make_unique<FBO>(1,
-                                  FBO::DEPTH_STENCIL_ATTACHMENT::NONE,
+    m_motionBlurFBO = std::make_unique<FBO>(1,
+                                  FBO::DEPTH_STENCIL_ATTACHMENT::DEPTH_ONLY,
                                   m_width,
                                   m_height,
-                                  TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE,
-                                  TextureParameters::FILTER_METHOD::NEAREST,
-                                  GL_FLOAT
+                                  TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE
                                   );
     rebuildMatrices();
 }

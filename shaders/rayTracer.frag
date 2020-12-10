@@ -30,7 +30,6 @@ uniform float centerSpeed;
 out vec4 fragColor;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-
 /*
 *	STRUCTS
 */
@@ -92,7 +91,7 @@ Material foggyGlass = Material(
 							vec4(240.f, 234.f, 214.f, 255.f)/255.f, 
 							vec4(1.f, 1.f, 1.f, 1.f), 
 							vec4(1.f, 1.f, 0.9f, 1.f), 
-							vec4(0.f),
+							vec4(1.f),
 							4.f,
 							1.5f
 							);
@@ -100,8 +99,8 @@ Material salmon = Material(
 							vec4(250.f, 128.f, 114.f, 255.f)/255.f, 
 							vec4(0.8f, 0.1f, 0.1f, 1.f), 
 							vec4(1.f, 1.f, 1.f, 1.f), 
-							vec4(0.f),
-							5.f,
+							vec4(1.f),
+							10.f,
 							1.369f
 							);
 
@@ -109,7 +108,7 @@ Material iron = Material(
 							vec4(203.f, 205.f, 205.f, 255.f)/255.f, 
 							vec4(0.1f, 0.8f, 0.1f, 1.f), 
 							vec4(1.f, 1.f, 1.f, 1.f), 
-							vec4(0.f),
+							vec4(1.f),
 							3.f,
 							1.0972
 							);
@@ -118,15 +117,15 @@ Material oak = Material(
 						vec4(120.f, 81.f, 45.f, 255.f)/255.f, 
 						vec4(1.f, 1.f, 1.f, 1.f), 
 						vec4(1.f, 1.f, 0.9f, 1.f), 
-						vec4(0),
+						vec4(1.f),
 						1.f,
 						1.f
 						);
 						
 float smallRadius = 0.25f;
 mat4 leftSphereTransformation = transpose(mat4(
-									smallRadius, 0.f, 0.f, -0.5f,
-									0.f, smallRadius, 0.f, 0.5f*sin(1.f/leftSpeed*time),
+									smallRadius*sin(1.f/leftSpeed*time), 0.f, 0.f, -0.5f,
+									0.f, smallRadius*sin(1.f/leftSpeed*time), 0.f, 0.5f*sin(1.f/leftSpeed*time),
 									0.f, 0.f, smallRadius, -3.f,
 									0.f, 0.f, 0.f, 1.f
 									));
@@ -335,7 +334,16 @@ vec4 traceRays(inout Ray primaryRay) {
 			radiance += ks*reflectionColor*computeLighting(reflectionRay, reflectionData);
 		}
 
-		// TODO: refractions?
+		vec4 refracted = normalize(refract(normal, v, ior));
+		vec4 oppositeSideVertex = vertex + refracted; // get to the otherside
+		Ray refractedRay = Ray(oppositeSideVertex + MIN_VAL*refracted, refracted);
+		Data refractionData = intersect(refractedRay);
+
+		if (refractionData.isIntersect) {
+			vec4 refractionColor = refractionData.mat.tranparencyColor;
+			radiance += kt*refractionColor*computeLighting(refractedRay, refractionData);
+		}
+
 		currentRay = reflectionRay;
 		currentData = reflectionData;
 	}
@@ -355,7 +363,7 @@ vec4 traceRays(inout Ray primaryRay) {
 */
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 void main() {
-	fragColor = vec4(0.1f, 0.1f, 0.1f, 1.f);
+	vec4 radiance = vec4(0.1f, 0.1f, 0.1f, 1.f);
 	float x = position.x; //in film
 	float y = position.y; //in film
 
@@ -365,7 +373,8 @@ void main() {
 	Ray primaryRay = Ray(P, d);
 	
 	// TODO: restore
-	fragColor += traceRays(primaryRay);
+	radiance += traceRays(primaryRay);
+	fragColor = radiance;
 
 	//fragColor = P + d;
 	// TODO: remove, debugging lines

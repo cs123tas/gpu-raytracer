@@ -104,7 +104,8 @@ OBJECTS       = release/mainwindow.o \
 		release/moc_Databinding.o \
 		release/moc_view.o
 
-DIST          = shaders/normals/normals.vert \
+DIST          = shaders/motionBlur.frag \
+		shaders/normals/normals.vert \
 		shaders/normals/normals.frag \
 		shaders/normals/normals.gsh \
 		shaders/normals/normalsArrow.gsh \
@@ -209,6 +210,7 @@ release/qrc_resources.cpp: resources.qrc \
 		shaders/shader.frag \
 		shaders/rayTracer.frag \
 		shaders/quad.vert \
+		shaders/motionBlur.frag \
 		shaders/shader.vert \
 		shaders/rayTracer.comp
 	C:\Qt\Qt5.14.2\5.14.2\mingw73_64\bin\rcc.exe -name resources resources.qrc -o release\qrc_resources.cpp
