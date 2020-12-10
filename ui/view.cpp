@@ -24,8 +24,8 @@ View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
     m_leftSpeed(0.1f),
     m_centerSpeed(0.02f),
     m_rightSpeed(0.01),
-    m_sleepTime(100),
-    m_depth(1)
+    m_sleepTime(50),
+    m_depth(2)
 {
     // View needs all mouse move events, not just mouse drag events
     setMouseTracking(true);
@@ -143,6 +143,10 @@ void View::paintWithFragmentShaders() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     m_rayTracerFragProgram->bind();
+
+    glm::mat4 M_film2World = glm::inverse(m_scale*m_view);
+    m_rayTracerFragProgram->setUniform("M_film2World", M_film2World);
+
     m_rayTracerFragProgram->setUniform("time", static_cast<float>(m_time.msec()/1000.f));
     m_rayTracerFragProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
     m_rayTracerFragProgram->setUniform("depth", m_depth);
@@ -227,11 +231,11 @@ void View::paintWithComputeShaders(){
 
 // TODO: change if we want camera effects
 void View::rebuildMatrices() {
-    m_view = glm::translate(glm::vec3(0, 0, -m_zoom)) *
+    m_view = glm::translate(glm::vec3(-2.f, -2.f, -m_zoom)) *
              glm::rotate(m_angleY, glm::vec3(1,0,0)) *
              glm::rotate(m_angleX, glm::vec3(0,1,0));
 
-    m_projection = glm::perspective(0.8f, (float)width()/height(), 0.1f, 100.f);
+    m_projection = glm::perspective(0.8f, static_cast<float>(m_width/m_height), 0.1f, 100.f);
     m_scale = glm::mat4({
                            m_width, 0.f, 0.f, 0.f,
                              0.f, m_height, 0.f, 0.f,
