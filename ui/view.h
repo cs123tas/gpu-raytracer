@@ -42,7 +42,6 @@ private:
     std::unique_ptr<Shader> m_motionBlurProgram; // post-processing effect
 
     std::unique_ptr<OpenGLShape> m_quad;
-    std::unique_ptr<OpenGLShape> m_postProcessingQuad;
 
     std::unique_ptr<FBO> m_motionBlurFBO; // TODO: I don't know if we need it, my intuition says so
 

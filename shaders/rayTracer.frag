@@ -27,7 +27,7 @@ uniform float centerSpeed;
 /*
 *	Out to frame buffer
 */
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 /*
@@ -408,7 +408,7 @@ void main() {
 	//fragColor = P + d;
 	// TODO: remove, debugging lines
 	// fragColor += vec4(time/1000.f, 1.f - time/1000.f, 0.f, 1.f);
-	// fragColor += d*0.5f + 0.5f;
+	//fragColor += P;
 	// fragColor += vec4(time, 0.f, 0.f, 1.f);
 	// fragColor = vec4(1.f, 0.f, 0.f, 1.f);
 }

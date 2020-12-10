@@ -106,12 +106,6 @@ void View::initializeGL() {
     m_quad->setAttribute(ShaderAttrib::TEXCOORD0, 2, 3*sizeof(GLfloat), VBOAttribMarker::DATA_TYPE::FLOAT, false);
     m_quad->buildVAO();
 
-    m_postProcessingQuad = std::make_unique<OpenGLShape>();
-    m_postProcessingQuad->setVertexData(&quadData[0], quadData.size(), VBO::GEOMETRY_LAYOUT::LAYOUT_TRIANGLE_STRIP, 4);
-    m_postProcessingQuad->setAttribute(ShaderAttrib::POSITION, 3, 0, VBOAttribMarker::DATA_TYPE::FLOAT, false);
-    m_postProcessingQuad->setAttribute(ShaderAttrib::TEXCOORD0, 2, 3*sizeof(GLfloat), VBOAttribMarker::DATA_TYPE::FLOAT, false);
-    m_postProcessingQuad->buildVAO();
-
     // Print the max FBO dimension.
     bool isBenchMarkingFBO = false;
     if (isBenchMarkingFBO) {
@@ -125,7 +119,9 @@ void View::initializeGL() {
                                   FBO::DEPTH_STENCIL_ATTACHMENT::DEPTH_ONLY,
                                   std::min(1000, m_width),
                                   std::min(1000, m_height),
-                                  TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE
+                                  TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE,
+                                  TextureParameters::FILTER_METHOD::LINEAR,
+                                  GL_FLOAT
                                   );
 }
 
@@ -139,7 +135,7 @@ void View::paintGL() {
 
 // Figure out fbo problem, important for performance
 void View::paintWithFragmentShaders() {
-    //m_motionBlurFBO->bind();
+    m_motionBlurFBO->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     m_rayTracerFragProgram->bind();
@@ -153,22 +149,16 @@ void View::paintWithFragmentShaders() {
     m_rayTracerFragProgram->setUniform("rightSpeed", m_rightSpeed);
     m_rayTracerFragProgram->setUniform("leftSpeed", m_leftSpeed);
     m_rayTracerFragProgram->setUniform("centerSpeed", m_centerSpeed);
-    //m_motionBlurFBO->getColorAttachment(0).bind();
+
+    m_motionBlurFBO->getColorAttachment(0).bind();
     m_quad->draw();
+    m_motionBlurFBO->unbind();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, m_width, m_height);
 
-
-    //m_motionBlurFBO->getColorAttachment(0).bind();
-    //m_motionBlurFBO->unbind();
-
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    //m_motionBlurProgram->bind();
-    //m_postProcessingQuad->draw();
-    //m_motionBlurFBO->unbind();
-
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    //m_motionBlurProgram->unbind();
+    m_motionBlurProgram->bind();
+    m_motionBlurProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
+    m_quad->draw();
 }
 
 
@@ -257,9 +247,11 @@ void View::resizeGL(int w, int h) {
 
     m_motionBlurFBO = std::make_unique<FBO>(1,
                                   FBO::DEPTH_STENCIL_ATTACHMENT::DEPTH_ONLY,
-                                  m_width,
-                                  m_height,
-                                  TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE
+                                  std::min(1000, m_width),
+                                  std::min(1000, m_height),
+                                  TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE,
+                                  TextureParameters::FILTER_METHOD::LINEAR,
+                                  GL_FLOAT
                                   );
     rebuildMatrices();
 }
@@ -309,6 +301,6 @@ void View::tick() {
     // TODO: Implement the demo update here
 
     // Flag this view for repainting (Qt will call paintGL() soon after)
-//    Sleep(m_sleepTime); // TODO: remove for non-Windows
-//    update();
+    Sleep(m_sleepTime); // TODO: remove for non-Windows
+    update();
 }
