@@ -2,7 +2,7 @@
 
 
 Physics::Physics(int fps):
-    m_fps(fps*10000)
+    m_fps(fps*1000000)
 {
     m_g = glm::vec3(0.0f);
 }

@@ -16,6 +16,8 @@
 #include "../lib/OpenGLShape.h"
 #include "../gl/datatype/FBO.h"
 
+#include "physics.h"
+
 using namespace CS123::GL;
 
 
@@ -43,7 +45,7 @@ private:
 
     std::unique_ptr<OpenGLShape> m_quad;
 
-    std::unique_ptr<FBO> m_motionBlurFBO; // TODO: I don't know if we need it, my intuition says so
+    std::unique_ptr<FBO> m_motionBlurFBO;
 
     glm::mat4 m_view;
     glm::mat4 m_projection;
@@ -63,6 +65,18 @@ private:
     float m_rightSpeed;
     int m_sleepTime;
     int m_depth;
+
+
+    // Rigid Physics
+    void setupSpheres();
+    void setupWalls();
+    std::vector<Sphere> m_spheres;
+    std::vector<Plane> m_walls;
+    Physics m_physics;
+    int m_increment;
+    float m_fps, m_friction, m_dt;
+    glm::vec3 m_g;
+    double m_tick;
 
     // Inheritted from QWidget
     void initializeGL();
