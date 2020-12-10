@@ -16,7 +16,23 @@
 #include "../lib/OpenGLShape.h"
 #include "../gl/datatype/FBO.h"
 
+#include "physics.h"
+
 using namespace CS123::GL;
+
+// Rigid Physics
+//struct Sphere{
+//    glm::vec3 position;
+//    glm::vec3 velocity;
+//    glm::vec3 force;
+//    glm::vec3 acceleration;
+//    float mass;
+//};
+
+//struct Plane{
+//    glm::vec3 position;
+//    glm::vec3 normal;
+//};
 
 
 class View : public QGLWidget {
@@ -60,6 +76,17 @@ private:
     float m_rightSpeed;
     int m_sleepTime;
     int m_depth;
+
+    // Rigid Physics
+    void setupSpheres();
+    void setupWalls();
+    std::vector<Sphere> m_spheres;
+    std::vector<Plane> m_walls;
+    Physics m_physics;
+    int m_increment;
+    float m_fps, m_friction, m_dt;
+    glm::vec3 m_g;
+    double m_tick;
 
     // Inheritted from QWidget
     void initializeGL();

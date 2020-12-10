@@ -24,6 +24,12 @@ uniform float leftSpeed;
 uniform float rightSpeed;
 uniform float centerSpeed;
 
+// Rigid Physics
+uniform vec3 pos1;
+uniform vec3 pos2;
+uniform vec3 pos3;
+
+
 /*
 *	Out to frame buffer
 */
@@ -62,6 +68,12 @@ struct Sphere {
 	mat4 transformation;
 
 	Material mat;
+
+        // Rigid physics
+//        vec3 velocity;
+//        vec3 force;
+//        float radius;
+//        float mass;
 };
 
 // Ground
@@ -124,37 +136,129 @@ Material oak = Material(
 						);
 						
 float smallRadius = 0.25f;
+//mat4 leftSphereTransformation = transpose(mat4(
+//                                                                        smallRadius, 0.f, 0.f, -0.5f,
+//                                                                        0.f, smallRadius, 0.f, 0.5f*sin(1.f/leftSpeed*time),
+//                                                                        0.f, 0.f, smallRadius, -3.f,
+//                                                                        0.f, 0.f, 0.f, 1.f
+//                                                                        ));
+
 mat4 leftSphereTransformation = transpose(mat4(
-									smallRadius, 0.f, 0.f, -0.5f,
-									0.f, smallRadius, 0.f, 0.5f*sin(1.f/leftSpeed*time),
-									0.f, 0.f, smallRadius, -3.f,
-									0.f, 0.f, 0.f, 1.f
-									));
+                                                                        smallRadius, 0.f, 0.f, pos1[0],
+                                                                        0.f, smallRadius, 0.f, pos1[2],
+                                                                        0.f, 0.f, smallRadius, pos1[1],
+                                                                        0.f, 0.f, 0.f, 1.f
+                                                                        ));
 
 float bigRadius = 1.1f;
-mat4 rightSphereTransformation = transpose(mat4(
-										bigRadius, 0.f, 0.f, 0.2f,
-										0.f, bigRadius, 0.f, 0.01f*cos(1.f/rightSpeed*time),
-										0.f, 0.f, bigRadius, -5.f,
-										0.f, 0.f, 0.f, 1.f
-									));
+//mat4 rightSphereTransformation = transpose(mat4(
+//										bigRadius, 0.f, 0.f, 0.2f,
+//										0.f, bigRadius, 0.f, 0.01f*cos(1.f/rightSpeed*time),
+//										0.f, 0.f, bigRadius, -5.f,
+//										0.f, 0.f, 0.f, 1.f
+//									));
 
+mat4 rightSphereTransformation = transpose(mat4(
+                                                                                bigRadius, 0.f, 0.f, 0.2f,
+                                                                                0.f, bigRadius, 0.f, 0.01f,
+                                                                                0.f, 0.f, bigRadius, -5.f,
+                                                                                0.f, 0.f, 0.f, 1.f
+                                                                        ));
+
+
+//mat4 centerSphereTransformation = transpose(mat4(
+//											1.f, 0.f, 0.f, 0.f,
+//                                                                                        0.f, 1.f, 0.f, -0.25f*sin(1.f/centerSpeed*time),
+//											0.f, 0.f, 1.f, 0.f,
+//                                                                                        0.f, 0.f, 0.f, 1.f
+//										));
 
 mat4 centerSphereTransformation = transpose(mat4(
-											1.f, 0.f, 0.f, 0.f,
-											0.f, 1.f, 0.f, -0.25f*sin(1.f/centerSpeed*time),
-											0.f, 0.f, 1.f, 0.f,
-											0.f, 0.f, 0.f, 1.f
-										));
+                                                                                        1.f, 0.f, 0.f, 0.f,
+                                                                                        0.f, 1.f, 0.f, -0.25f,
+                                                                                        0.f, 0.f, 1.f, 0.f,
+                                                                                        0.f, 0.f, 0.f, 1.f
+                                                                                ));
+//mat4 updateTransformMat(mat4 transformMat, vec3 scale, vec3 translation){
+//    if (scale[0] != 0.0f || scale[1] != 0.0f || scale[2] != 0.0f){
+//        transformMat *= scale;
+//    }
+//    if (scale[0] != 0.0f || scale[1] != 0.0f || scale[2] != 0.0f){
+//        transformMat *= translation;
+//    }
+//}
 
+// Rigid physics
+
+Plane backWall = Plane(vec4(0.f, 0.f, -2.f, 1.f), vec4(0.f, 0.f, 1.f, 0.f), oak);
+Plane frontWall = Plane(vec4(0.f, 0.f, 0.1f, 1.f), vec4(0.f, 0.f, -1.f, 0.f), oak);
+Plane leftWall = Plane(vec4(-1.5f, 0.f, 0.f, 1.f), vec4(1.f, 0.f, 0.f, 0.f), oak);
+Plane rightWall = Plane(vec4(1.5f, 0.f, 0.f, 1.f), vec4(-1.f, 0.f, 0.f, 0.f), oak);
+Plane topWall = Plane(vec4(0.f, 1.5f, 0.f, 1.f), vec4(0.f, -1.f, 0.f, 0.f), oak);
+Plane bottomWall = Plane(vec4(0.f, -1.5f, 0.f, 1.f), vec4(0.f, 1.f, 0.f, 0.f), oak);
+Plane walls[] = Plane[6](backWall, frontWall, leftWall, rightWall, topWall, bottomWall);
+
+//vec3 velocity;
+//vec3 force;
+//float radius;
+//float mass;
 
 Sphere leftSphere = Sphere(leftSphereTransformation, salmon);
 Sphere rightSphere = Sphere(rightSphereTransformation, iron);
 Sphere centerSphere = Sphere(centerSphereTransformation, foggyGlass);
 
-Sphere sceneSpheres[] = Sphere[3](centerSphere, rightSphere, leftSphere);
+Sphere sceneSpheres[] = Sphere[3](leftSphere, centerSphere, rightSphere);
 
-Plane plane = Plane(vec4(0.f, 0.f, 0.f, 1.f), vec4(	0.f, 1.f, 0.f, 0.f), oak);
+Plane plane = Plane(vec4(0.f, 0.f, 0.f, 1.f), vec4(0.f, 1.f, 0.f, 0.f), oak);
+
+
+/////////////////////////////////////////////////////////////////////////////////
+/*
+*	Physics
+*/
+////////////////////////////////////////////////////////////////////////////////
+
+
+//void simulateRigidPhysics() {
+//    bool noCollision=false;
+//    while (true){
+//        for (int i = 0; i < sceneSpheres.length(); i++){ // iterate over spheres
+//            Sphere sphere1 = sceneSpheres[i];
+
+//        }
+//        break;
+//    }
+//}
+
+//void avoidCollision(){
+//    bool noCollision=false;
+//    while (true){
+//        for (int j=0;j<3;j++){ // repeat the following processes multiple times
+//            for (int i = 0; i < sceneSpheres.length(); i++){ // iterate over spheres
+//                Sphere sphere1 = sceneSpheres[i];
+//                for (int k = 0; k < sceneSpheres.length(); k++){ // iterate over spheres
+//                    Sphere sphere2 = sceneSpheres[k];
+
+//                }
+//            }
+//            for (int i = 0; i < walls.length(); i++){ // iterate over walls
+//                Plane wall = walls[i];
+//            }
+//        }
+//        break;
+//    }
+//}
+
+void updatePosition(){
+//    sceneSpheres[0].transformation[3].xyz = pos1;
+//    sceneSpheres[1].transformation[3].xyz = pos2;
+//    sceneSpheres[2].transformation[3].xyz = pos3;
+}
+
+
+
+
+
 
 /////////////////////////////////////////////////////////////////////////////////
 /*
@@ -225,7 +329,7 @@ Data intersect(inout Ray ray) {
 
 	float t = MAX_VAL;
 
-	for (int i = 0; i < 3; i++){ // for each Sphere
+        for (int i = 0; i < sceneSpheres.length(); i++){ // for each Sphere
 		// TODO: remove, simple sphere ray intersect test
 		Sphere sphere = sceneSpheres[i];
 		mat4 transformation = sphere.transformation;
@@ -275,7 +379,7 @@ bool checkOcclusions(inout Ray ray, inout Data data, inout Light light) {
 vec4 computeLighting(inout Ray ray, inout Data data) {
 	vec4 radiance = vec4(0.f, 0.f, 0.f, 1.f);
 
-	for (int i = 0; i < 3; i++) { // for each light in the scene
+        for (int i = 0; i < sceneLighting.length(); i++) { // for each light in the scene
 		Light light = sceneLighting[i];
 
 		vec4 I = light.color;
@@ -365,7 +469,10 @@ void main() {
 	Ray primaryRay = Ray(P, d);
 	
 	// TODO: restore
-	fragColor += traceRays(primaryRay);
+//        simulateRigidPhysics();
+        updatePosition();
+//        fragColor = leftSphereTransformation
+        fragColor += traceRays(primaryRay);
 
 	//fragColor = P + d;
 	// TODO: remove, debugging lines
