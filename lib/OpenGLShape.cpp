@@ -1,4 +1,4 @@
-#include "openglshape.h"
+#include "OpenGLShape.h"
 
 #include "gl/datatype/VAO.h"
 

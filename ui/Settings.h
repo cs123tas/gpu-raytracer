@@ -1,3 +1,5 @@
+#include <QObject>
+
 /**
  * @file    Settings.h
  *
@@ -11,9 +13,20 @@
 #include <QObject>
 // Enumeration values for the two tabs (2D, 3D) at the bottom of the Window.
 enum UITab {
-    TAB_2D,
-    TAB_3D,
+    view,
     NUM_TABS
+};
+
+// Enumeration values for the Shapes that the user can select in the GUI.
+enum ShapeType {
+    SHAPE_CUBE,
+    SHAPE_CONE,
+    SHAPE_SPHERE,
+    SHAPE_CYLINDER,
+    SHAPE_TORUS,
+    SHAPE_SPECIAL_1,
+    SHAPE_SPECIAL_2,
+    NUM_SHAPE_TYPES
 };
 
 // Enumeration values for the currently selected scene type
@@ -45,6 +58,10 @@ struct Settings {
     // Saves the current settings to disk.
     void saveSettings();
 
+
+    float shapeParameter1;
+    float shapeParameter2;
+    float shapeParameter3;
 
     // Camtrans
     bool useOrbitCamera;        // Use the built-in orbiting camera instead of the Camtrans camera

@@ -20,20 +20,6 @@
 
 using namespace CS123::GL;
 
-// Rigid Physics
-//struct Sphere{
-//    glm::vec3 position;
-//    glm::vec3 velocity;
-//    glm::vec3 force;
-//    glm::vec3 acceleration;
-//    float mass;
-//};
-
-//struct Plane{
-//    glm::vec3 position;
-//    glm::vec3 normal;
-//};
-
 
 class View : public QGLWidget {
     Q_OBJECT
@@ -50,13 +36,16 @@ private:
     int m_height;
     int m_width;
 
-    GLuint m_renderOut; //TODO: remove and abstract into texture class
+    GLuint m_renderOut; // TODO: remove
 
     std::unique_ptr<Shader> m_rayTracerCompProgram; // gpgpu
     std::unique_ptr<Shader> m_textureProgram; // fullscreen quad
     std::unique_ptr<Shader> m_rayTracerFragProgram; // glsl raytracer
+    std::unique_ptr<Shader> m_motionBlurProgram; // post-processing effect
+
     std::unique_ptr<OpenGLShape> m_quad;
-    std::unique_ptr<FBO> m_fbo; // TODO: I don't know if we need it, my intuition says so
+
+    std::unique_ptr<FBO> m_FBO1;
 
     glm::mat4 m_view;
     glm::mat4 m_projection;
@@ -77,12 +66,13 @@ private:
     int m_sleepTime;
     int m_depth;
 
+
     // Rigid Physics
     void setupSpheres();
     void setupWalls();
     std::vector<Sphere> m_spheres;
     std::vector<Plane> m_walls;
-    Physics m_physics;
+    std::unique_ptr<Physics> m_physics;
     int m_increment;
     float m_fps, m_friction, m_dt;
     glm::vec3 m_g;

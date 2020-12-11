@@ -8,24 +8,13 @@
 #include "lib/ResourceLoader.h"
 #include "lib/Sphere.h"
 #include "gl/textures/Texture2D.h"
+#include "Settings.h"
+#include "iostream"
 
 using namespace CS123::GL;
 
-// Physics TODOs
-// Loop over all objs
-//  1- Compute Dynamics
-//        1- For each shape compute the force (e.g. gravity) acting on it
-//        2- Compute its updated velocity from the acceleration produced by force
-//        3- Update position based on the computed velocity
-//        4- Compute rotations using the computed angular velocities, moment of interia, torque
-//  2- Compute Collision
-// 3- Move OBJs with keys
-
-// Represent objects with: center of mass, mass, , velocity vector, position vector,
-// Represent the world with global things like gravity, wall boundaries, friction
-
 View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
-    m_fbo(nullptr),
+    m_FBO1(nullptr),
     m_time(),
     m_timer(),
     m_captureMouse(false),
@@ -33,20 +22,26 @@ View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
     m_width(std::min(1000, width())),
     m_angleX(-0.5f),
     m_angleY(0.5f),
-    m_zoom(4.f),
+    m_zoom(1.f),
     m_leftSpeed(0.1f),
     m_centerSpeed(0.02f),
     m_rightSpeed(0.01),
-    m_sleepTime(100),
-    m_depth(1),
-    m_increment(0),
-    m_fps(60.0f),
-    m_friction(0.05),
-    m_physics(m_fps)
+    m_sleepTime(50),
+    m_depth(2),
+    m_fps(6.0f),
+    m_friction(0.05)
 {
-    // Rigid Physics
-    m_g = glm::vec3({0.0f, 0.0f, -9.81f});
+     // Rigid Physics
+    m_g = glm::vec3({0.0f, 9.81f, 0.0f});
     m_dt = 1.0f/m_fps;
+
+    m_spheres.reserve(3);
+    m_spheres.resize(3);
+    View::setupSpheres();
+    m_walls.reserve(6);
+    m_walls.resize(6);
+    View::setupWalls();
+    m_physics = std::make_unique<Physics>(m_fps);
 
     // View needs all mouse move events, not just mouse drag events
     setMouseTracking(true);
@@ -61,17 +56,6 @@ View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
 
     // The update loop is implemented using a timer
     connect(&m_timer, SIGNAL(timeout()), this, SLOT(tick()));
-    m_timer.start(1000.0f / m_fps);
-    m_tick = 1.0;
-
-
-    // Rigid Physics
-    m_spheres.reserve(3);
-    m_spheres.resize(3);
-    View::setupSpheres();
-    m_walls.reserve(6);
-    m_walls.resize(6);
-    View::setupWalls();
 }
 
 View::~View()
@@ -94,8 +78,8 @@ void View::initializeGL() {
 
     // Start a timer that will try to get 60 frames per second (the actual
     // frame rate depends on the operating system and other running programs)
-//    m_time.start();
-//    m_timer.start(1000 / 60);
+    m_time.start();
+    m_timer.start(1000 / 60);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -142,23 +126,14 @@ void View::initializeGL() {
         std::cout << "Max FBO size: " << maxRenderBufferSize << std::endl;
     }
 
-    // TODO: I don't know why the FBO class isn't working, here's raw ogl instead
-    glGenTextures(1, &m_renderOut);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, std::min(1000, m_width), std::min(m_height, 1000), 0, GL_RGBA, GL_FLOAT, 0);
-
-//    m_fbo = std::make_unique<FBO>(1,
-//                                  FBO::DEPTH_STENCIL_ATTACHMENT::NONE,
-//                                  m_width,
-//                                  m_height,
-//                                  TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE,
-//                                  TextureParameters::FILTER_METHOD::LINEAR,
-//                                  GL_FLOAT
-//                                  );
+    m_FBO1 = std::make_unique<FBO>(1,
+                                  FBO::DEPTH_STENCIL_ATTACHMENT::DEPTH_ONLY,
+                                  std::min(1000, m_width),
+                                  std::min(1000, m_height),
+                                  TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE,
+                                  TextureParameters::FILTER_METHOD::LINEAR,
+                                  GL_FLOAT
+                                  );
 }
 
 void View::paintGL() {
@@ -171,13 +146,17 @@ void View::paintGL() {
 
 // Figure out fbo problem, important for performance
 void View::paintWithFragmentShaders() {
-    //m_fbo->bind();
-
-
+    //    printf("%.2f\n", settings.shapeParameter1);
+    m_FBO1->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     float time = m_increment++ / (float) m_fps;
 
+    glViewport(0, 0, m_width, m_height);
     m_rayTracerFragProgram->bind();
+
+    glm::mat4 M_film2World = glm::inverse(m_scale*m_view);
+    m_rayTracerFragProgram->setUniform("M_film2World", M_film2World);
+
     m_rayTracerFragProgram->setUniform("time", static_cast<float>(time));
     m_rayTracerFragProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
     m_rayTracerFragProgram->setUniform("depth", m_depth);
@@ -185,27 +164,27 @@ void View::paintWithFragmentShaders() {
     m_rayTracerFragProgram->setUniform("leftSpeed", m_leftSpeed);
     m_rayTracerFragProgram->setUniform("centerSpeed", m_centerSpeed);
 
+
     // Rigid physics
     // TODOs: pass fps, gravity, acceleration, velocity
-    m_physics.m_g = m_g;
-    m_physics.m_fps = m_fps;
-    m_physics.runPhysics(m_spheres);
-    printf("new z component of left sphere's position: %.4f\n", m_spheres[0].position[2]);
+    m_physics->m_g = m_g;
+    m_physics->m_fps = m_fps;
+    m_physics->runPhysics(m_spheres, m_walls);
+//    printf("new z component of left sphere's position: %.4f\n", m_spheres[0].position[2]);
     m_rayTracerFragProgram->setUniform("pos1", m_spheres[0].position);
     m_rayTracerFragProgram->setUniform("pos2", m_spheres[1].position);
     m_rayTracerFragProgram->setUniform("pos3", m_spheres[2].position);
 
-
-    glActiveTexture(GL_TEXTURE0); // TODO: restore after figuring out the fbo issues
-    glBindTexture(GL_TEXTURE_2D, m_renderOut);
-    //m_fbo->getColorAttachment(0).bind();
+    m_FBO1->getColorAttachment(0).bind();
     m_quad->draw();
-    m_rayTracerFragProgram->unbind();
-    // m_fbo->unbind();
-    glBindImageTexture(0, m_renderOut, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    m_FBO1->unbind();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, m_width, m_height);
+
+    m_quad->draw();
 }
 
-// TODO: it would be nice to optimize this based on a user's particular hardware
+
 static void checkAvailableWorkers() {
     /*
      * This checks how many workers are
@@ -263,19 +242,18 @@ void View::paintWithComputeShaders(){
     }
 }
 
-// TODO: change if we want camera effects
 void View::rebuildMatrices() {
-    m_view = glm::translate(glm::vec3(0, 0, -m_zoom)) *
+    m_view = glm::translate(glm::vec3(0.f, 0.f, -m_zoom)) *
              glm::rotate(m_angleY, glm::vec3(1,0,0)) *
              glm::rotate(m_angleX, glm::vec3(0,1,0));
 
-    m_projection = glm::perspective(0.8f, (float)width()/height(), 0.1f, 100.f);
-    m_scale = glm::mat4({
+    m_projection = (glm::perspective(0.8f, static_cast<float>(m_width/m_height), 0.1f, 100.f));
+    m_scale = glm::transpose(glm::mat4({
                            m_width, 0.f, 0.f, 0.f,
                              0.f, m_height, 0.f, 0.f,
                             0.f, 0.f, 100.f, 0.f,
                             0.f, 0.f, 0.f, 1.f
-                        });
+                        }));
     update();
 }
 
@@ -289,12 +267,12 @@ void View::resizeGL(int w, int h) {
     m_height = std::min(h, 1000);
     glViewport(0, 0, m_width, m_height);
 
-    m_fbo = std::make_unique<FBO>(1,
-                                  FBO::DEPTH_STENCIL_ATTACHMENT::NONE,
-                                  m_width,
-                                  m_height,
+    m_FBO1 = std::make_unique<FBO>(1,
+                                  FBO::DEPTH_STENCIL_ATTACHMENT::DEPTH_ONLY,
+                                  std::min(1000, m_width),
+                                  std::min(1000, m_height),
                                   TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE,
-                                  TextureParameters::FILTER_METHOD::NEAREST,
+                                  TextureParameters::FILTER_METHOD::LINEAR,
                                   GL_FLOAT
                                   );
     rebuildMatrices();
@@ -345,22 +323,30 @@ void View::tick() {
     // TODO: Implement the demo update here
 
     // Flag this view for repainting (Qt will call paintGL() soon after)
-//    Sleep(m_sleepTime); // TODO: remove for non-Windows
+//    Sleep(m_sleepTime);
     update();
 }
 
+
 void View::setupSpheres(){
-    m_spheres[0].mass = 0.001f;
-    m_spheres[1].mass = 1.0f;
+//    Sphere sphere1 = {glm::vec3({0.5f, -0.5f, 3.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), 8.2f};
+//    Sphere sphere2 = {glm::vec3({-0.2f, -0.01f, 5.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), 2.0f};
+//    Sphere sphere3 = {glm::vec3({0.0f, 0.25f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), 8.2f};
+//    m_spheres.push_back(sphere1);
+//    m_spheres.push_back(sphere2);
+//    m_spheres.push_back(sphere3);
+
+    m_spheres[0].mass = 8.2f;
+    m_spheres[1].mass = 2.0f;
     m_spheres[2].mass = 0.6f;
 
     m_spheres[0].force = glm::vec3({0.0f, 0.0f, 0.0f});
     m_spheres[1].force = glm::vec3({0.0f, 0.0f, 0.0f});
     m_spheres[2].force = glm::vec3({0.0f, 0.0f, 0.0f});
 
-    m_spheres[0].position = glm::vec3({-0.5f, 0.5f, 0.0f});
-    m_spheres[1].position = glm::vec3({0.2f, 0.01f, -0.25f});
-    m_spheres[2].position = glm::vec3({-0.5f, 0.5f, 0.f});
+    m_spheres[0].position = glm::vec3({0.5f, -0.5f, 3.0f});
+    m_spheres[1].position = glm::vec3({-0.2f, -0.01f, 5.0f});
+    m_spheres[2].position = glm::vec3({0.0f, 0.25f, 0.0f});
 
     m_spheres[0].velocity = glm::vec3({0.0f, 0.0f, 0.0f});
     m_spheres[1].velocity = glm::vec3({0.0f, 0.0f, 0.0f});
@@ -386,4 +372,3 @@ void View::setupWalls(){
     m_walls[0].normal = glm::vec3({0.f, -1.f, 1.f});
     m_walls[0].normal = glm::vec3({0.f, 1.f, 1.f});
 }
-
