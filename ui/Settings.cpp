@@ -28,14 +28,18 @@ void Settings::loadSettingsOrDefaults() {
     QSettings s("CS123", "CS123");
 
 
-   // Camtrans
+    shapeParameter1 = s.value("shapeParameter1", 15).toDouble();
+    shapeParameter2 = s.value("shapeParameter2", 15).toDouble();
+    shapeParameter3 = s.value("shapeParameter3", 15).toDouble();
+
+    // Camtrans
     useOrbitCamera = s.value("useOrbitCamera", true).toBool();
     cameraFov = s.value("cameraFov", 55).toDouble();
     cameraNear = s.value("cameraNear", 0.1).toDouble();
     cameraFar = s.value("cameraFar", 50).toDouble();
 
 
-    currentTab = s.value("currentTab", TAB_2D).toBool();
+    currentTab = s.value("currentTab", view).toBool();
 
     // These are for computing deltas and the values don't matter, so start all dials in the up
     // position
@@ -45,16 +49,15 @@ void Settings::loadSettingsOrDefaults() {
     cameraRotU = 0;
     cameraRotV = 0;
     cameraRotN = 0;
+
 }
 
 void Settings::saveSettings() {
     QSettings s("CS123", "CS123");
 
-    // Camtrans
-    s.setValue("useOrbitCamera", useOrbitCamera);
-    s.setValue("cameraFov", cameraFov);
-    s.setValue("cameraNear", cameraNear);
-    s.setValue("cameraFar", cameraFar);
+    s.setValue("shapeParameter1", shapeParameter1);
+    s.setValue("shapeParameter2", shapeParameter2);
+    s.setValue("shapeParameter3", shapeParameter3);
 
 
     s.setValue("currentTab", currentTab);
@@ -64,9 +67,9 @@ int Settings::getSceneMode() {
     return 0;
 }
 
-int Settings::getCameraMode() {
-    if (this->useOrbitCamera)
-        return CAMERAMODE_ORBIT;
-    else
-        return CAMERAMODE_CAMTRANS;
-}
+//int Settings::getCameraMode() {
+//    if (this->useOrbitCamera)
+//        return CAMERAMODE_ORBIT;
+//    else
+//        return CAMERAMODE_CAMTRANS;
+//}

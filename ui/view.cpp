@@ -8,6 +8,7 @@
 #include "lib/ResourceLoader.h"
 #include "lib/Sphere.h"
 #include "gl/textures/Texture2D.h"
+#include "iostream"
 
 using namespace CS123::GL;
 
@@ -27,11 +28,10 @@ View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
     m_sleepTime(50),
     m_depth(2),
     m_fps(60.0f),
-    m_friction(0.05),
-    m_physics(m_fps)
+    m_friction(0.05)
 {
      // Rigid Physics
-    m_g = glm::vec3({0.0f, 0.0f, -9.81f});
+    m_g = glm::vec3({0.0f, 9.81f, 0.0f});
     m_dt = 1.0f/m_fps;
 
     m_spheres.reserve(3);
@@ -40,6 +40,7 @@ View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
     m_walls.reserve(6);
     m_walls.resize(6);
     View::setupWalls();
+    m_physics = std::make_unique<Physics>(m_fps);
 
     // View needs all mouse move events, not just mouse drag events
     setMouseTracking(true);
@@ -170,10 +171,10 @@ void View::paintWithFragmentShaders() {
 
     // Rigid physics
     // TODOs: pass fps, gravity, acceleration, velocity
-    m_physics.m_g = m_g;
-    m_physics.m_fps = m_fps;
-    m_physics.runPhysics(m_spheres);
-    printf("new z component of left sphere's position: %.4f\n", m_spheres[0].position[2]);
+    m_physics->m_g = m_g;
+    m_physics->m_fps = m_fps;
+    m_physics->runPhysics(m_spheres, m_walls);
+//    printf("new z component of left sphere's position: %.4f\n", m_spheres[0].position[2]);
     m_rayTracerFragProgram->setUniform("pos1", m_spheres[0].position);
     m_rayTracerFragProgram->setUniform("pos2", m_spheres[1].position);
     m_rayTracerFragProgram->setUniform("pos3", m_spheres[2].position);
@@ -336,17 +337,24 @@ void View::tick() {
 
 
 void View::setupSpheres(){
-    m_spheres[0].mass = 0.001f;
-    m_spheres[1].mass = 1.0f;
+//    Sphere sphere1 = {glm::vec3({0.5f, -0.5f, 3.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), 8.2f};
+//    Sphere sphere2 = {glm::vec3({-0.2f, -0.01f, 5.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), 2.0f};
+//    Sphere sphere3 = {glm::vec3({0.0f, 0.25f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), 8.2f};
+//    m_spheres.push_back(sphere1);
+//    m_spheres.push_back(sphere2);
+//    m_spheres.push_back(sphere3);
+
+    m_spheres[0].mass = 8.2f;
+    m_spheres[1].mass = 2.0f;
     m_spheres[2].mass = 0.6f;
 
     m_spheres[0].force = glm::vec3({0.0f, 0.0f, 0.0f});
     m_spheres[1].force = glm::vec3({0.0f, 0.0f, 0.0f});
     m_spheres[2].force = glm::vec3({0.0f, 0.0f, 0.0f});
 
-    m_spheres[0].position = glm::vec3({-0.5f, 0.5f, 0.0f});
-    m_spheres[1].position = glm::vec3({0.2f, 0.01f, -0.25f});
-    m_spheres[2].position = glm::vec3({-0.5f, 0.5f, 0.f});
+    m_spheres[0].position = glm::vec3({0.5f, -0.5f, 3.0f});
+    m_spheres[1].position = glm::vec3({-0.2f, -0.01f, 5.0f});
+    m_spheres[2].position = glm::vec3({0.0f, 0.25f, 0.0f});
 
     m_spheres[0].velocity = glm::vec3({0.0f, 0.0f, 0.0f});
     m_spheres[1].velocity = glm::vec3({0.0f, 0.0f, 0.0f});

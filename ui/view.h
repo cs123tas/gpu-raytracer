@@ -72,7 +72,7 @@ private:
     void setupWalls();
     std::vector<Sphere> m_spheres;
     std::vector<Plane> m_walls;
-    Physics m_physics;
+    std::unique_ptr<Physics> m_physics;
     int m_increment;
     float m_fps, m_friction, m_dt;
     glm::vec3 m_g;
