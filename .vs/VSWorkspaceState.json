@@ -4,6 +4,6 @@
     "\\shaders",
     "\\ui"
   ],
-  "SelectedNode": "\\shaders\\shader.frag",
+  "SelectedNode": "\\shaders\\motionBlur.frag",
   "PreviewInSolutionExplorer": false
 }

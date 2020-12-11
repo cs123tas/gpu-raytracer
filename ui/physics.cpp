@@ -2,7 +2,8 @@
 
 
 Physics::Physics(int fps):
-    m_fps(fps*10000)
+    m_fps(fps*10000),
+    m_eps(1e-6)
 {
     m_g = glm::vec3(0.0f);
 }
@@ -13,18 +14,17 @@ Physics::~Physics()
 }
 
 void Physics::computeForce(glm::vec3& forceVec, float mass){
-    forceVec[0] = mass*m_g[0];
-    forceVec[1] = mass*m_g[1];
-    forceVec[2] = mass*m_g[2];
+    forceVec[0] = (mass+m_eps)*m_g[0];
+    forceVec[1] = (mass+m_eps)*m_g[1];
+    forceVec[2] = (mass+m_eps)*m_g[2];
 }
 
 void Physics::updateAcceleration(glm::vec3& acceleration, glm::vec3& force, float mass){
-    acceleration = force/mass;
+    acceleration = force/(mass+m_eps);
 }
 
-void Physics::updateVelocity(glm::vec3 &velocity, glm::vec3 &acceleration){
-//    velocity += acceleration * (1.0f/m_fps);
-    velocity = acceleration * (1.0f/m_fps);
+void Physics::updateVelocity(glm::vec3 &velocity, glm::vec3 &acceleration){;
+    velocity += acceleration * (1.0f/m_fps);
 }
 
 void Physics::updatePosition(glm::vec3 &position, glm::vec3 &velocity){

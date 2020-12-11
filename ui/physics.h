@@ -36,7 +36,7 @@ public:
 
     glm::vec3 m_g;
     int m_fps;
-
+    float m_eps;
 };
 
 #endif // PHYSICS_H

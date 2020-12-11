@@ -23,7 +23,15 @@ void main(){
 //        weights += weight;
 //    }
 //    fragColor /= weights;
-     
-    vec2 transformed = 2*((texCoord/vec2(512, 512)) + 1)*texelSize.x;
-    fragColor = texture(tex, transformed);
+    
+    float x = dimensions.x*(texCoord.x + 1.f)/2.f;
+    float y = dimensions.y*(texCoord.y + 1.f)/2.f;
+    fragColor = texture(tex, texCoord/512);
+//    if (x > -0.01 && x < 0.01) {
+//		fragColor = vec4(1.f, 0.f, 0.f, 1.f);
+//	} else if (y > -0.01 && y < 0.01) {
+//		fragColor = vec4(0.f, 1.f, 0.f, 1.f);
+//	} else {
+//		fragColor = vec4(0.1f);
+//	}
 }

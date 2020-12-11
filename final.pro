@@ -42,6 +42,7 @@ SOURCES += ui/mainwindow.cpp \
     glew-1.10.0/src/glew.c \
     ui/Databinding.cpp \
     ui/Settings.cpp \
+    ui/physics.cpp \
     ui/view.cpp \
     ui/viewformat.cpp
 
@@ -67,6 +68,7 @@ HEADERS += ui/mainwindow.h \
     lib/Sphere.h \
     ui/Databinding.h \
     ui/Settings.h \
+    ui/physics.h \
     ui_mainwindow.h \
     glew-1.10.0/include/GL/glew.h \
     ui/view.h \
