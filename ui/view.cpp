@@ -8,13 +8,12 @@
 #include "lib/ResourceLoader.h"
 #include "lib/Sphere.h"
 #include "gl/textures/Texture2D.h"
-#include "Settings.h"
 #include "iostream"
 
 using namespace CS123::GL;
 
 View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
-    m_FBO1(nullptr),
+    m_motionBlurFBO(nullptr),
     m_time(),
     m_timer(),
     m_captureMouse(false),
@@ -22,13 +21,13 @@ View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
     m_width(std::min(1000, width())),
     m_angleX(-0.5f),
     m_angleY(0.5f),
-    m_zoom(1.f),
+    m_zoom(4.f),
     m_leftSpeed(0.1f),
     m_centerSpeed(0.02f),
     m_rightSpeed(0.01),
     m_sleepTime(50),
     m_depth(2),
-    m_fps(6.0f),
+    m_fps(60.0f),
     m_friction(0.05)
 {
      // Rigid Physics
@@ -101,6 +100,10 @@ void View::initializeGL() {
     std::string rayTracerFragmentSource = ResourceLoader::loadResourceFileToString(":/shaders/rayTracer.frag");
     m_rayTracerFragProgram = std::make_unique<Shader>(quadVertexSource, rayTracerFragmentSource);
 
+    // Loading in post-processing shaders
+//    std::string motionBlurFragmentSource = ResourceLoader::loadResourceFileToString(":/shaders/motionBlur.frag");
+//    m_motionBlurProgram = std::make_unique<Shader>(quadVertexSource, motionBlurFragmentSource);
+
     std::vector<GLfloat> quadData{
         -1.f, 1.f, 0.0,
          0.f, 0.f,
@@ -126,7 +129,8 @@ void View::initializeGL() {
         std::cout << "Max FBO size: " << maxRenderBufferSize << std::endl;
     }
 
-    m_FBO1 = std::make_unique<FBO>(1,
+
+    m_motionBlurFBO = std::make_unique<FBO>(1,
                                   FBO::DEPTH_STENCIL_ATTACHMENT::DEPTH_ONLY,
                                   std::min(1000, m_width),
                                   std::min(1000, m_height),
@@ -146,8 +150,7 @@ void View::paintGL() {
 
 // Figure out fbo problem, important for performance
 void View::paintWithFragmentShaders() {
-    //    printf("%.2f\n", settings.shapeParameter1);
-    m_FBO1->bind();
+    m_motionBlurFBO->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     float time = m_increment++ / (float) m_fps;
 
@@ -157,6 +160,7 @@ void View::paintWithFragmentShaders() {
     glm::mat4 M_film2World = glm::inverse(m_scale*m_view);
     m_rayTracerFragProgram->setUniform("M_film2World", M_film2World);
 
+    // m_rayTracerFragProgram->setUniform("time", static_cast<float>(m_time.msec()/1000.f));
     m_rayTracerFragProgram->setUniform("time", static_cast<float>(time));
     m_rayTracerFragProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
     m_rayTracerFragProgram->setUniform("depth", m_depth);
@@ -175,11 +179,14 @@ void View::paintWithFragmentShaders() {
     m_rayTracerFragProgram->setUniform("pos2", m_spheres[1].position);
     m_rayTracerFragProgram->setUniform("pos3", m_spheres[2].position);
 
-    m_FBO1->getColorAttachment(0).bind();
+    m_motionBlurFBO->getColorAttachment(0).bind();
     m_quad->draw();
-    m_FBO1->unbind();
+    m_motionBlurFBO->unbind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, m_width, m_height);
+
+    //m_motionBlurProgram->bind();
+    //m_motionBlurProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
 
     m_quad->draw();
 }
@@ -242,18 +249,19 @@ void View::paintWithComputeShaders(){
     }
 }
 
+// TODO: change if we want camera effects
 void View::rebuildMatrices() {
-    m_view = glm::translate(glm::vec3(0.f, 0.f, -m_zoom)) *
+    m_view = glm::translate(glm::vec3(-2.f, -2.f, -m_zoom)) *
              glm::rotate(m_angleY, glm::vec3(1,0,0)) *
              glm::rotate(m_angleX, glm::vec3(0,1,0));
 
-    m_projection = (glm::perspective(0.8f, static_cast<float>(m_width/m_height), 0.1f, 100.f));
-    m_scale = glm::transpose(glm::mat4({
+    m_projection = glm::perspective(0.8f, static_cast<float>(m_width/m_height), 0.1f, 100.f);
+    m_scale = glm::mat4({
                            m_width, 0.f, 0.f, 0.f,
                              0.f, m_height, 0.f, 0.f,
                             0.f, 0.f, 100.f, 0.f,
                             0.f, 0.f, 0.f, 1.f
-                        }));
+                        });
     update();
 }
 
@@ -267,7 +275,7 @@ void View::resizeGL(int w, int h) {
     m_height = std::min(h, 1000);
     glViewport(0, 0, m_width, m_height);
 
-    m_FBO1 = std::make_unique<FBO>(1,
+    m_motionBlurFBO = std::make_unique<FBO>(1,
                                   FBO::DEPTH_STENCIL_ATTACHMENT::DEPTH_ONLY,
                                   std::min(1000, m_width),
                                   std::min(1000, m_height),
@@ -323,7 +331,7 @@ void View::tick() {
     // TODO: Implement the demo update here
 
     // Flag this view for repainting (Qt will call paintGL() soon after)
-//    Sleep(m_sleepTime);
+//    Sleep(m_sleepTime); // TODO: remove for non-Windows
     update();
 }
 

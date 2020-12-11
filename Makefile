@@ -107,7 +107,8 @@ OBJECTS       = mainwindow.o \
 		moc_mainwindow.o \
 		moc_Databinding.o \
 		moc_view.o
-DIST          = shaders/normals/normals.vert \
+DIST          = shaders/motionBlur.frag \
+		shaders/normals/normals.vert \
 		shaders/normals/normals.frag \
 		shaders/normals/normals.gsh \
 		shaders/normals/normalsArrow.gsh \
@@ -1600,28 +1601,37 @@ mainwindow.o: ui/mainwindow.cpp ui/mainwindow.h \
 		ui/Settings.h \
 		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtCore/QObject \
 		ui_mainwindow.h \
-		ui/Databinding.h \
 		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtCore/QVariant \
-		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QSlider \
-		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qslider.h \
-		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qabstractslider.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QApplication \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qapplication.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtCore/qcoreapplication.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtCore/qeventloop.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qdesktopwidget.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtGui/qguiapplication.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtGui/qinputmethod.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QDockWidget \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qdockwidget.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QGridLayout \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qgridlayout.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qlayout.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qlayoutitem.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qboxlayout.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QGroupBox \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qgroupbox.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qframe.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QHBoxLayout \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QLabel \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qlabel.h \
 		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QLineEdit \
 		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qlineedit.h \
-		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qframe.h \
 		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtGui/qtextcursor.h \
 		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtGui/qtextformat.h \
 		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtGui/qpen.h \
 		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtGui/qtextoption.h \
-		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QCheckBox \
-		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qcheckbox.h \
-		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qabstractbutton.h \
-		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QRadioButton \
-		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qradiobutton.h \
-		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QDockWidget \
-		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qdockwidget.h \
-		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QTabWidget \
-		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QDial \
-		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qdial.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QSlider \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qslider.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qabstractslider.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QWidget \
 		ui/view.h \
 		glew-1.10.0/include/GL/glew.h \
 		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtOpenGL/qgl.h \
@@ -1734,6 +1744,15 @@ mainwindow.o: ui/mainwindow.cpp ui/mainwindow.h \
 		gl/datatype/FBO.h \
 		gl/textures/TextureParameters.h \
 		ui/physics.h \
+		ui/Databinding.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QCheckBox \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qcheckbox.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qabstractbutton.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QRadioButton \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qradiobutton.h \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QTabWidget \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QDial \
+		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qdial.h \
 		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtOpenGL/QGLFormat \
 		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/QFileDialog \
 		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtWidgets/qfiledialog.h \
@@ -2888,9 +2907,7 @@ view.o: ui/view.cpp ui/view.h \
 		lib/ResourceLoader.h \
 		lib/Sphere.h \
 		gl/textures/Texture2D.h \
-		gl/textures/Texture.h \
-		ui/Settings.h \
-		/home/amir/Qt5.14.2/5.14.2/gcc_64/include/QtCore/QObject
+		gl/textures/Texture.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o view.o ui/view.cpp
 
 viewformat.o: ui/viewformat.cpp ui/viewformat.h \

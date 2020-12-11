@@ -106,6 +106,7 @@ RESOURCES += \
     resources.qrc
 
 DISTFILES += \
+    shaders/motionBlur.frag \
     shaders/normals/normals.vert \
     shaders/normals/normals.frag \
     shaders/normals/normals.gsh \

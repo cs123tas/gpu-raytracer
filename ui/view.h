@@ -45,7 +45,7 @@ private:
 
     std::unique_ptr<OpenGLShape> m_quad;
 
-    std::unique_ptr<FBO> m_FBO1;
+    std::unique_ptr<FBO> m_motionBlurFBO;
 
     glm::mat4 m_view;
     glm::mat4 m_projection;
