@@ -106,8 +106,7 @@ OBJECTS       = debug/mainwindow.o \
 		debug/moc_Databinding.o \
 		debug/moc_view.o
 
-DIST          = shaders/motionBlur.frag \
-		shaders/normals/normals.vert \
+DIST          = shaders/normals/normals.vert \
 		shaders/normals/normals.frag \
 		shaders/normals/normals.gsh \
 		shaders/normals/normalsArrow.gsh \
@@ -214,7 +213,6 @@ debug/qrc_resources.cpp: resources.qrc \
 		shaders/shader.frag \
 		shaders/rayTracer.frag \
 		shaders/quad.vert \
-		shaders/motionBlur.frag \
 		shaders/shader.vert \
 		shaders/rayTracer.comp
 	C:\Qt\Qt5.14.2\5.14.2\mingw73_64\bin\rcc.exe -name resources resources.qrc -o debug\qrc_resources.cpp

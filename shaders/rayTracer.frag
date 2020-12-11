@@ -62,7 +62,6 @@ struct Data {
 	float t;
 };
 
-
 struct Sphere {
 	mat4 transformation;
 
@@ -121,8 +120,8 @@ Material forest = Material(
 							0.2f,
 							vec3(2.f),
 							0.9f
-							);			
-// TODO: remove boilerplate
+							);	
+							
   float smallRadius = 0.25f;
   mat4 leftSphereTransformation = transpose(mat4(
   									smallRadius, 0.f, 0.f, -0.5f,
@@ -146,7 +145,7 @@ Material forest = Material(
   											0.f, 0.f, 0.f, -1.f
   										));
 
-
+// TODO: Amir 
 // float smallRadius = 0.25f;
 // mat4 leftSphereTransformation = transpose(mat4(
 // 									smallRadius, 0.f, 0.f, -pos1[0],
@@ -509,26 +508,4 @@ void main() {
 
 	radiance += traceRays(primaryRay);
 	fragColor = radiance;
-
-	//fragColor = P + d;
-	// TODO: remove, debugging lines
-	// fragColor += vec4(time/1000.f, 1.f - time/1000.f, 0.f, 1.f);
-	//fragColor += P;
-//
-//	if (x > 0.1 && x < 0.5) {
-//		fragColor = vec4(1.f, 0.f, 0.f, 1.f);
-//	} else {
-//		fragColor = vec4(0.f);
-//	}
-	
-//     if (x > -0.01 && x < 0.01) {
-//		fragColor = vec4(1.f, 0.f, 0.f, 1.f);
-//	} else if (y > -0.01 && y < 0.01) {
-//		fragColor = vec4(0.f, 1.f, 0.f, 1.f);
-//	} else {
-//		fragColor = vec4(0.f, 0.f, 1.f, 1.f);
-//	}
-//
-//	// fragColor += vec4(time, 0.f, 0.f, 1.f);
-//	// fragColor = vec4(1.f, 0.f, 0.f, 1.f);
 }

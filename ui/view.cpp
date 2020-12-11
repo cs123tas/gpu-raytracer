@@ -1,5 +1,6 @@
 #include "view.h"
 
+#include <unistd.h>
 #include "viewformat.h"
 #include <QApplication>
 #include <QKeyEvent>
@@ -99,10 +100,6 @@ void View::initializeGL() {
     std::string rayTracerFragmentSource = ResourceLoader::loadResourceFileToString(":/shaders/rayTracer.frag");
     m_rayTracerFragProgram = std::make_unique<Shader>(quadVertexSource, rayTracerFragmentSource);
 
-    // Loading in post-processing shaders
-    std::string motionBlurFragmentSource = ResourceLoader::loadResourceFileToString(":/shaders/motionBlur.frag");
-    m_motionBlurProgram = std::make_unique<Shader>(quadVertexSource, motionBlurFragmentSource);
-
     std::vector<GLfloat> quadData{
         -1.f, 1.f, 0.0,
          0.f, 0.f,
@@ -146,7 +143,7 @@ void View::paintGL() {
     }
 }
 
-// Figure out fbo problem, important for performance
+
 void View::paintWithFragmentShaders() {
     m_FBO1->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -170,7 +167,7 @@ void View::paintWithFragmentShaders() {
     m_physics->m_g = m_g;
     m_physics->m_fps = m_fps;
     m_physics->runPhysics(m_spheres);
-//    printf("new z component of left sphere's position: %.4f\n", m_spheres[0].position[2]);
+
     m_rayTracerFragProgram->setUniform("pos1", m_spheres[0].position);
     m_rayTracerFragProgram->setUniform("pos2", m_spheres[1].position);
     m_rayTracerFragProgram->setUniform("pos3", m_spheres[2].position);
@@ -181,10 +178,6 @@ void View::paintWithFragmentShaders() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, m_width, m_height);
 
-    //m_motionBlurProgram->bind();
-    //m_motionBlurProgram->setUniform("dimensions", glm::vec2(m_width, m_height));
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glViewport(0, 0, m_width, m_height);
     m_quad->draw();
 }
 
@@ -326,10 +319,9 @@ void View::tick() {
     // TODO: Implement the demo update here
 
     // Flag this view for repainting (Qt will call paintGL() soon after)
-//    Sleep(m_sleepTime); // TODO: remove for non-Windows
-//    update();
+    Sleep(m_sleepTime);
+    update();
 }
-
 
 void View::setupSpheres(){
     m_spheres[0].mass = 0.2f;
