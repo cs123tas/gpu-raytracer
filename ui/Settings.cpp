@@ -25,12 +25,12 @@ Settings settings;
  */
 void Settings::loadSettingsOrDefaults() {
     // Set the default values below
-    QSettings s("CS123", "CS123");
+    QSettings s("final", "final");
 
 
-    shapeParameter1 = s.value("shapeParameter1", 15).toDouble();
-    shapeParameter2 = s.value("shapeParameter2", 15).toDouble();
-    shapeParameter3 = s.value("shapeParameter3", 15).toDouble();
+    shapeParameter1 = s.value("shapeParameter1", 0.0f).toDouble();
+    shapeParameter2 = s.value("shapeParameter2", 0.0f).toDouble();
+    shapeParameter3 = s.value("shapeParameter3", 0.0f).toDouble();
 
     // Camtrans
     useOrbitCamera = s.value("useOrbitCamera", true).toBool();
@@ -67,9 +67,9 @@ int Settings::getSceneMode() {
     return 0;
 }
 
-//int Settings::getCameraMode() {
-//    if (this->useOrbitCamera)
-//        return CAMERAMODE_ORBIT;
-//    else
-//        return CAMERAMODE_CAMTRANS;
-//}
+int Settings::getCameraMode() {
+    if (this->useOrbitCamera)
+        return CAMERAMODE_ORBIT;
+    else
+        return CAMERAMODE_CAMTRANS;
+}

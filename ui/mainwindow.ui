@@ -33,6 +33,12 @@
    </layout>
   </widget>
   <widget class="QDockWidget" name="dockWidget">
+   <property name="maximumSize">
+    <size>
+     <width>200</width>
+     <height>300</height>
+    </size>
+   </property>
    <attribute name="dockWidgetArea">
     <number>1</number>
    </attribute>
@@ -42,7 +48,7 @@
       <rect>
        <x>10</x>
        <y>10</y>
-       <width>181</width>
+       <width>191</width>
        <height>121</height>
       </rect>
      </property>
@@ -59,17 +65,17 @@
       <property name="verticalSpacing">
        <number>5</number>
       </property>
-      <item row="0" column="0">
-       <widget class="QLabel" name="shapeParameterLabel1">
-        <property name="text">
-         <string>1</string>
-        </property>
-       </widget>
-      </item>
       <item row="2" column="0">
        <widget class="QLabel" name="shapeParameterLabel2">
         <property name="text">
          <string>2</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="shapeParameterLabel1">
+        <property name="text">
+         <string>1</string>
         </property>
        </widget>
       </item>
@@ -88,6 +94,18 @@
           <height>0</height>
          </size>
         </property>
+        <property name="minimum">
+         <number>-100</number>
+        </property>
+        <property name="maximum">
+         <number>100</number>
+        </property>
+        <property name="singleStep">
+         <number>0</number>
+        </property>
+        <property name="pageStep">
+         <number>30</number>
+        </property>
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
@@ -100,6 +118,15 @@
           <width>100</width>
           <height>0</height>
          </size>
+        </property>
+        <property name="minimum">
+         <number>-100</number>
+        </property>
+        <property name="maximum">
+         <number>100</number>
+        </property>
+        <property name="singleStep">
+         <number>1</number>
         </property>
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -114,13 +141,19 @@
           <height>0</height>
          </size>
         </property>
+        <property name="minimum">
+         <number>-100</number>
+        </property>
+        <property name="maximum">
+         <number>100</number>
+        </property>
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
        </widget>
       </item>
-      <item row="0" column="2">
-       <widget class="QLineEdit" name="shapeParameterTextbox1">
+      <item row="4" column="2">
+       <widget class="QLineEdit" name="shapeParameterTextbox3">
         <property name="minimumSize">
          <size>
           <width>40</width>
@@ -151,8 +184,8 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="2">
-       <widget class="QLineEdit" name="shapeParameterTextbox3">
+      <item row="0" column="2">
+       <widget class="QLineEdit" name="shapeParameterTextbox1">
         <property name="minimumSize">
          <size>
           <width>40</width>

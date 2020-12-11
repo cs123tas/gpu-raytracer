@@ -79,7 +79,7 @@ struct Settings {
     int objTool;                // The currently selected modeler tool.
 
     int getSceneMode();
-//    int getCameraMode();
+    int getCameraMode();
 
     int currentTab;
 
