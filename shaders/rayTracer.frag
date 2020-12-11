@@ -157,25 +157,25 @@ Material oak = Material(
 
   float smallRadius = 0.25f;
   mat4 leftSphereTransformation = transpose(mat4(
-                                                                        smallRadius, 0.f, 0.f, -pos1[0],
-                                                                        0.f, smallRadius, 0.f, -pos1[1],
-                                                                        0.f, 0.f, smallRadius, -pos1[2],
+                                                                        smallRadius, 0.f, 0.f, pos1[0],
+                                                                        0.f, smallRadius, 0.f, pos1[1],
+                                                                        0.f, 0.f, smallRadius, pos1[2],
                                                                         0.f, 0.f, 0.f, 1.f
                                                                         ));
 
   float bigRadius = 1.1f;
   mat4 rightSphereTransformation = transpose(mat4(
-                                                                                bigRadius, 0.f, 0.f, -pos2[0],
-                                                                                0.f, bigRadius, 0.f, -pos2[1],
-                                                                                0.f, 0.f, bigRadius, -pos2[2],
+                                                                                bigRadius, 0.f, 0.f, pos2[0],
+                                                                                0.f, bigRadius, 0.f, pos2[1],
+                                                                                0.f, 0.f, bigRadius, pos2[2],
                                                                                 0.f, 0.f, 0.f, 1.f
                                                                         ));
 
 
   mat4 centerSphereTransformation = transpose(mat4(
-                                                                                        1.f, 0.f, 0.f, -pos3[0],
-                                                                                        0.f, 1.f, 0.f, -pos3[1],
-                                                                                        0.f, 0.f, 1.f, -pos3[2],
+                                                                                        1.f, 0.f, 0.f, pos3[0],
+                                                                                        0.f, 1.f, 0.f, pos3[1],
+                                                                                        0.f, 0.f, 1.f, pos3[2],
                                                                                         0.f, 0.f, 0.f, 1.f
                                                                                 ));
 

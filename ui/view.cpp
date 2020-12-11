@@ -31,7 +31,7 @@ View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
     m_friction(0.05)
 {
      // Rigid Physics
-    m_g = glm::vec3({0.0f, 9.81f, 0.0f});
+    m_g = glm::vec3({0.0f, -9.81f, 0.0f});
     m_dt = 1.0f/m_fps;
 
     m_spheres.reserve(3);
@@ -40,7 +40,10 @@ View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
     m_walls.reserve(6);
     m_walls.resize(6);
     View::setupWalls();
-    m_physics = std::make_unique<Physics>(m_fps);
+    m_physics = std::make_unique<Physics>(m_fps, m_g);
+    m_sphere1 = View::setupSphere(0);
+    m_sphere2 = View::setupSphere(1);
+    m_sphere3 = View::setupSphere(2);
 
     // View needs all mouse move events, not just mouse drag events
     setMouseTracking(true);
@@ -171,13 +174,19 @@ void View::paintWithFragmentShaders() {
 
     // Rigid physics
     // TODOs: pass fps, gravity, acceleration, velocity
-    m_physics->m_g = m_g;
-    m_physics->m_fps = m_fps;
-    m_physics->runPhysics(m_spheres, m_walls);
+//    m_physics->runPhysics(m_spheres, m_walls);
 //    printf("new z component of left sphere's position: %.4f\n", m_spheres[0].position[2]);
-    m_rayTracerFragProgram->setUniform("pos1", m_spheres[0].position);
-    m_rayTracerFragProgram->setUniform("pos2", m_spheres[1].position);
-    m_rayTracerFragProgram->setUniform("pos3", m_spheres[2].position);
+//    m_rayTracerFragProgram->setUniform("pos1", m_spheres[0].position);
+//    m_rayTracerFragProgram->setUniform("pos2", m_spheres[1].position);
+//    m_rayTracerFragProgram->setUniform("pos3", m_spheres[2].position);
+
+    // Things are faster this way
+    m_sphere1 = m_physics->runPhysics(m_sphere1, m_walls);
+    m_rayTracerFragProgram->setUniform("pos1", m_sphere1.position);
+    m_sphere2 = m_physics->runPhysics(m_sphere2, m_walls);
+    m_rayTracerFragProgram->setUniform("pos2", m_sphere2.position);
+    m_sphere3 = m_physics->runPhysics(m_sphere3, m_walls);
+    m_rayTracerFragProgram->setUniform("pos3", m_sphere3.position);
 
     m_motionBlurFBO->getColorAttachment(0).bind();
     m_quad->draw();
@@ -336,6 +345,43 @@ void View::tick() {
 }
 
 
+Sphere View::setupSphere(int i){
+//    Sphere sphere1 = {glm::vec3({0.5f, -0.5f, 3.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), 8.2f};
+//    Sphere sphere2 = {glm::vec3({-0.2f, -0.01f, 5.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), 2.0f};
+//    Sphere sphere3 = {glm::vec3({0.0f, 0.25f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), 8.2f};
+//    m_spheres.push_back(sphere1);
+//    m_spheres.push_back(sphere2);
+//    m_spheres.push_back(sphere3);
+    Sphere sphere;
+    if (i == 0){
+        sphere.mass = 0.5f;
+        sphere.radius = 0.25f;
+        sphere.force = glm::vec3({0.0f, -9.81f, 0.0f});
+        sphere.position = glm::vec3({-0.7f, 0.7f, 0.0f});
+        sphere.velocity = glm::vec3({0.0f, 0.0f, 0.0f});
+        sphere.acceleration = glm::vec3({0.0f, 0.0f, 0.0f});
+    }
+    else if(i == 1){
+        sphere.mass = 1.6f;
+        sphere.radius = 1.1f;
+        sphere.force = glm::vec3({0.0f, -9.81f, 0.0f});
+        sphere.position = glm::vec3({0.3f, 0.41f, 0.2f});
+        sphere.velocity = glm::vec3({0.0f, 0.0f, 0.0f});
+        sphere.acceleration = glm::vec3({0.0f, 0.0f, 0.0f});
+    }
+    else if(i == 2){
+        sphere.mass = 1.2f;
+        sphere.radius = 1.0f;
+        sphere.force = glm::vec3({0.0f, -9.81f, 0.0f});
+        sphere.position = glm::vec3({-0.1f, 1.25f, 0.0f});
+        sphere.velocity = glm::vec3({0.0f, 0.0f, 0.0f});
+        sphere.acceleration = glm::vec3({0.0f, 0.0f, 0.0f});
+    }
+
+    return sphere;
+}
+
+
 void View::setupSpheres(){
 //    Sphere sphere1 = {glm::vec3({0.5f, -0.5f, 3.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), 8.2f};
 //    Sphere sphere2 = {glm::vec3({-0.2f, -0.01f, 5.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), glm::vec3({0.0f, 0.0f, 0.0f}), 2.0f};
@@ -348,12 +394,16 @@ void View::setupSpheres(){
     m_spheres[1].mass = 2.0f;
     m_spheres[2].mass = 0.6f;
 
-    m_spheres[0].force = glm::vec3({0.0f, 0.0f, 0.0f});
-    m_spheres[1].force = glm::vec3({0.0f, 0.0f, 0.0f});
-    m_spheres[2].force = glm::vec3({0.0f, 0.0f, 0.0f});
+    m_spheres[0].radius = 0.25f;
+    m_spheres[1].radius = 1.1f;
+    m_spheres[2].radius = 1.0f;
 
-    m_spheres[0].position = glm::vec3({0.5f, -0.5f, 3.0f});
-    m_spheres[1].position = glm::vec3({-0.2f, -0.01f, 5.0f});
+    m_spheres[0].force = glm::vec3({0.0f, -9.81f, 0.0f});
+    m_spheres[1].force = glm::vec3({0.0f, -9.81f, 0.0f});
+    m_spheres[2].force = glm::vec3({0.0f, -9.81f, 0.0f});
+
+    m_spheres[0].position = glm::vec3({0.5f, -0.5f, 1.0f});
+    m_spheres[1].position = glm::vec3({-0.2f, -0.01f, 2.0f});
     m_spheres[2].position = glm::vec3({0.0f, 0.25f, 0.0f});
 
     m_spheres[0].velocity = glm::vec3({0.0f, 0.0f, 0.0f});
@@ -366,17 +416,17 @@ void View::setupSpheres(){
 }
 
 void View::setupWalls(){
-    m_walls[0].position = glm::vec3({0.f, 0.f, -2.f}); // back wall
-    m_walls[1].position = glm::vec3({0.f, 0.f, 0.1f}); // front wall
-    m_walls[2].position = glm::vec3({-1.5f, 0.f, 0.f}); // left wall
-    m_walls[3].position = glm::vec3({1.5f, 0.f, 0.f}); // right wall
-    m_walls[4].position = glm::vec3({0.f, 1.5f, 0.f}); // top wall
-    m_walls[5].position = glm::vec3({0.f, -1.5f, 0.f}); // bottom wall
+    m_walls[0].position = glm::vec3({0.f, 0.f, 2.8f}); // back wall
+    m_walls[1].position = glm::vec3({0.f, 0.f, -0.8f}); // front wall
+    m_walls[2].position = glm::vec3({-2.84f, 0.f, 0.f}); // left wall
+    m_walls[3].position = glm::vec3({2.8f, 0.f, 0.f}); // right wall
+    m_walls[4].position = glm::vec3({0.f, 2.8f, 0.f}); // top wall
+    m_walls[5].position = glm::vec3({0.f, -2.8f, 0.f}); // bottom wall
 
-    m_walls[0].normal = glm::vec3({0.f, 0.f, 1.f});
     m_walls[0].normal = glm::vec3({0.f, 0.f, -1.f});
-    m_walls[0].normal = glm::vec3({1.f, 0.f, 0.f});
-    m_walls[0].normal = glm::vec3({-1.f, 0.f, 1.f});
-    m_walls[0].normal = glm::vec3({0.f, -1.f, 1.f});
-    m_walls[0].normal = glm::vec3({0.f, 1.f, 1.f});
+    m_walls[1].normal = glm::vec3({0.f, 0.f, 1.f});
+    m_walls[2].normal = glm::vec3({1.f, 0.f, 0.f});
+    m_walls[3].normal = glm::vec3({-1.f, 0.f, 0.f});
+    m_walls[4].normal = glm::vec3({0.f, -1.f, 0.f});
+    m_walls[5].normal = glm::vec3({0.f, 1.f, 0.f});
 }

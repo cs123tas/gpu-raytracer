@@ -68,6 +68,7 @@ private:
 
 
     // Rigid Physics
+    Sphere setupSphere(int i);
     void setupSpheres();
     void setupWalls();
     std::vector<Sphere> m_spheres;
@@ -77,6 +78,10 @@ private:
     float m_fps, m_friction, m_dt;
     glm::vec3 m_g;
     double m_tick;
+
+    Sphere m_sphere1;
+    Sphere m_sphere2;
+    Sphere m_sphere3;
 
     // Inheritted from QWidget
     void initializeGL();

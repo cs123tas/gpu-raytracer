@@ -153,10 +153,10 @@ public:
     void retranslateUi(QMainWindow *MainWindow)
     {
         MainWindow->setWindowTitle(QCoreApplication::translate("MainWindow", "A CS123 Final", nullptr));
-        shapeParameters->setTitle(QCoreApplication::translate("MainWindow", "Physics Parameters", nullptr));
-        shapeParameterLabel2->setText(QCoreApplication::translate("MainWindow", "2", nullptr));
-        shapeParameterLabel1->setText(QCoreApplication::translate("MainWindow", "1", nullptr));
-        shapeParameterLabel3->setText(QCoreApplication::translate("MainWindow", "3", nullptr));
+        shapeParameters->setTitle(QCoreApplication::translate("MainWindow", "Gravity", nullptr));
+        shapeParameterLabel2->setText(QCoreApplication::translate("MainWindow", "y", nullptr));
+        shapeParameterLabel1->setText(QCoreApplication::translate("MainWindow", "x", nullptr));
+        shapeParameterLabel3->setText(QCoreApplication::translate("MainWindow", "z", nullptr));
     } // retranslateUi
 
 };

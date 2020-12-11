@@ -53,7 +53,7 @@
       </rect>
      </property>
      <property name="title">
-      <string>Physics Parameters</string>
+      <string>Gravity</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_4">
       <property name="topMargin">
@@ -68,21 +68,21 @@
       <item row="2" column="0">
        <widget class="QLabel" name="shapeParameterLabel2">
         <property name="text">
-         <string>2</string>
+         <string>y</string>
         </property>
        </widget>
       </item>
       <item row="0" column="0">
        <widget class="QLabel" name="shapeParameterLabel1">
         <property name="text">
-         <string>1</string>
+         <string>x</string>
         </property>
        </widget>
       </item>
       <item row="4" column="0">
        <widget class="QLabel" name="shapeParameterLabel3">
         <property name="text">
-         <string>3</string>
+         <string>z</string>
         </property>
        </widget>
       </item>

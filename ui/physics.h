@@ -12,6 +12,7 @@ struct Sphere{
     glm::vec3 force;
     glm::vec3 acceleration;
     float mass;
+    float radius;
 };
 
 struct Plane{
@@ -22,7 +23,7 @@ struct Plane{
 class Physics{
 
 public:
-    Physics(int fps);
+    Physics(int fps, glm::vec3 g);
     virtual ~Physics();
 
     // Rigid physics
@@ -31,11 +32,14 @@ public:
     void updateVelocity(glm::vec3 &velocity, glm::vec3 &acceleration);
     void updatePosition(glm::vec3 &position, glm::vec3 &velocity);
 
-    void collisionDetection(Sphere& sphere, std::vector<Plane>& walls);
+    glm::vec3 collisionDetection(Sphere& sphere, std::vector<Plane> walls);
     void runPhysics(std::vector<Sphere> &spheres, std::vector<Plane> &walls);
+    Sphere runPhysics(Sphere sphere, std::vector<Plane> walls);
 
     void setupSpheres();
     void setupWalls();
+
+    float sum(glm::vec3 vec);
 
     glm::vec3 m_g;
     int m_fps;
